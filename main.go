@@ -4,98 +4,20 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
-	"strconv"
 )
-
-func tableName()string{
-    var tableName string
-	fmt.Println("what should the table be named?")
-	fmt.Scanln(&tableName)
-	fmt.Println("your table is named:", tableName)
-    return tableName
-}
-
-func userChoice(validChoices map[int]string)interface{}{
-	var userChoice string
-	fmt.Scanln(&userChoice)
-    parsedChoice, _ = strconv.Atoi(userChoice)// converts string input to int
-	validChoice, ok := validChoices[parsedChoice]// stores choice
-	// loop based on validity of input
-	for {
-		if ok == false {
-			fmt.Println(`Invalid Choice:
-The valid choices are:
-        1: string
-        2: int
-        3: float
-Please input your choice:`)
-			fmt.Scanln(&userChoice)
-			parsedChoice, _ = strconv.Atoi(userChoice)
-			validChoice, ok = validChoices[parsedChoice]
-		} else {
-			break
-		}
-	}
-    return validChoice
-}
-
-func parseChoice(choice string)interface{}{
-    switch choice{
-    case "string":
-        return choice
-    case "int":
-        v, _ := strconv.Atoi(choice)
-        return v
-    case "float":
-        v2, _ := strconv.ParseFloat(choice, 64)
-        return v2
-    }
-}
 
 func main() {
 
-	// get table name
-	var tableName string
-	fmt.Println("what should the table be named?")
-	fmt.Scanln(&tableName)
-	fmt.Println("your table is named:", tableName)
+	tableName := getTableName()
+	fmt.Println(tableName)
 
 	// create valid choices map
+	// TODO create this dynamically by db type
 	validChoices := map[int]string{
 		1: "string",
 		2: "int",
 		3: "float",
 	}
-
-	// ask for user input
-	fmt.Println(`The valid choices are:
-        1: string
-        2: int
-        3: float
-        Please input your choice:`)
-
-	// parse user input for validation with map
-	var userChoice string
-	fmt.Scanln(&userChoice)
-	parsedChoice, _ := strconv.Atoi(userChoice)
-	validChoice, ok := validChoices[parsedChoice]
-	// loop based on validity of input
-	for {
-		if ok == false {
-			fmt.Println(`Invalid Choice:
-The valid choices are:
-        1: one
-        2: two
-        3: three
-Please input your choice:`)
-			fmt.Scanln(&userChoice)
-			parsedChoice, _ = strconv.Atoi(userChoice)
-			validChoice, ok = validChoices[parsedChoice]
-		} else {
-			break
-		}
-	}
-	fmt.Println(validChoice)
 
 	// open csv file
 	f, err := os.Open("sample.csv")
@@ -113,7 +35,14 @@ Please input your choice:`)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-	fmt.Println(firstLine)
+
+	// get types of headers
+	var fieldTypes []string
+	for _, col := range firstLine {
+		userChoice := getUserChoice(col, validChoices)
+		fieldTypes = append(fieldTypes, userChoice)
+	}
+	fmt.Println(fieldTypes)
 
 	// read lines temporarily using a loop to work with smaller numbers of lines
 	for i := 0; i < 1; i++ {
@@ -122,13 +51,11 @@ Please input your choice:`)
 			fmt.Println("error:", err)
 		}
 		// range over an record to access colums
-		for _, col := range record { // throw away the index
-			fd, err := strconv.ParseFloat(col, 32)
-			if err != nil {
-				fmt.Println("error:", err)
-			} else {
-				fmt.Printf("%[1]T %[1]v\n", fd)
-			}
+		var row []interface{}
+		for i, col := range record {
+			c := parseValueByChoice(fieldTypes[i], col)
+			row = append(row, c)
 		}
+		fmt.Println(row) // this `row` is a slice with values of different types ready for insertion
 	}
 }
