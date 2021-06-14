@@ -36,9 +36,16 @@ func main() {
 		fmt.Println("error:", err)
 	}
 
+	var newFirstLine []string
+	for _, fd := range firstLine {
+		newFirstLine = append(newFirstLine, sterilize(fd))
+	}
+
+	fmt.Println(newFirstLine)
+
 	// get types of headers
 	var fieldTypes []string
-	for _, col := range firstLine {
+	for _, col := range newFirstLine {
 		userChoice := getUserChoice(col, validChoices)
 		fieldTypes = append(fieldTypes, userChoice)
 	}

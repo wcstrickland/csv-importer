@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 //func getDBType() string {
@@ -10,6 +11,14 @@ import (
 //	fmt.Println("what kind of Database?")
 //	fmt.Scanln(&DBType)
 //}
+
+func sterilize(s string) string {
+	prohibited := []string{" ", "|", "-", "*", "/", "<", ">", ",", "=", "`", "~", "!", "?", "^", "(", ")"}
+	for _, v := range prohibited {
+		s = strings.ReplaceAll(s, v, "_")
+	}
+	return s
+}
 
 // getTableName takes no arguments and returns a string
 // getTableName takes user input to assign a variable for table name
