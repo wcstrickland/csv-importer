@@ -7,6 +7,51 @@ import (
 	"strconv"
 )
 
+func tableName()string{
+    var tableName string
+	fmt.Println("what should the table be named?")
+	fmt.Scanln(&tableName)
+	fmt.Println("your table is named:", tableName)
+    return tableName
+}
+
+func userChoice(validChoices map[int]string)interface{}{
+	var userChoice string
+	fmt.Scanln(&userChoice)
+    parsedChoice, _ = strconv.Atoi(userChoice)// converts string input to int
+	validChoice, ok := validChoices[parsedChoice]// stores choice
+	// loop based on validity of input
+	for {
+		if ok == false {
+			fmt.Println(`Invalid Choice:
+The valid choices are:
+        1: string
+        2: int
+        3: float
+Please input your choice:`)
+			fmt.Scanln(&userChoice)
+			parsedChoice, _ = strconv.Atoi(userChoice)
+			validChoice, ok = validChoices[parsedChoice]
+		} else {
+			break
+		}
+	}
+    return validChoice
+}
+
+func parseChoice(choice string)interface{}{
+    switch choice{
+    case "string":
+        return choice
+    case "int":
+        v, _ := strconv.Atoi(choice)
+        return v
+    case "float":
+        v2, _ := strconv.ParseFloat(choice, 64)
+        return v2
+    }
+}
+
 func main() {
 
 	// get table name
@@ -17,17 +62,18 @@ func main() {
 
 	// create valid choices map
 	validChoices := map[int]string{
-		1: "one",
-		2: "two",
-		3: "three",
+		1: "string",
+		2: "int",
+		3: "float",
 	}
 
 	// ask for user input
 	fmt.Println(`The valid choices are:
-        1: one
-        2: two
-        3: three
+        1: string
+        2: int
+        3: float
         Please input your choice:`)
+
 	// parse user input for validation with map
 	var userChoice string
 	fmt.Scanln(&userChoice)
@@ -52,7 +98,7 @@ Please input your choice:`)
 	fmt.Println(validChoice)
 
 	// open csv file
-	f, err := os.Open("kidney.csv")
+	f, err := os.Open("sample.csv")
 	if err != nil {
 		fmt.Println("error:", err)
 		return
