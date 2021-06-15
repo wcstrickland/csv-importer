@@ -3,8 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/jackc/pgx/4"
-	"github.com/jackc/pgx/tree/master/pgxpool"
+	//"github.com/jackc/pgx/v4"
 	"os"
 )
 
