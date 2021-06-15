@@ -25,7 +25,7 @@
     - range over each record
         - ~~for each column run a switch statement where each case is a different datatype key held in the slice~~
         ~~and the action on each case is the appropriate strconv.Method()~~
-    - create map[string]interface{} for each record and use orm to create a SQL object 
+    - ~~create map[string]interface{} for each record and use orm to create a SQL object~~
     - send each object onto a job channel
     - have workers pull jobs and execute the insertion query. also the workers may be better suited to convert the map[string]interface{}
     to SQL object and then run the insertion

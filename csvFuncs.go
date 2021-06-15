@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// printSortedMap takes a map[int]string and has no return value
+// the func allows a map whose keys are ints to be printed in order by those ints
 func printSortedMap(m map[int]string) {
 	var si []int
 	for i := range m {
@@ -18,6 +20,8 @@ func printSortedMap(m map[int]string) {
 	}
 }
 
+// sanitize takes a string and returns a string
+// for each prohbited char the string replaces all instances of said char
 func sanitize(s string) string {
 	prohibited := []string{";", ":", " ", "|", "-", "*", "/", "<", ">", ",", "=", "`", "~", "!", "?", "^", "(", ")"}
 	for _, v := range prohibited {
@@ -67,7 +71,7 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 }
 
 // parseValueByChoice takes a string and returns interface{}
-// the string input is evaluated
+// the string input is evaluated and each case performs appropriate strconv.Method()
 func parseValueByChoice(choice string, value string) interface{} {
 	switch choice {
 	case "string":
