@@ -6,14 +6,8 @@ import (
 	"strings"
 )
 
-//func getDBType() string {
-//	var DBType string
-//	fmt.Println("what kind of Database?")
-//	fmt.Scanln(&DBType)
-//}
-
 func sterilize(s string) string {
-	prohibited := []string{" ", "|", "-", "*", "/", "<", ">", ",", "=", "`", "~", "!", "?", "^", "(", ")"}
+	prohibited := []string{";", ":", " ", "|", "-", "*", "/", "<", ">", ",", "=", "`", "~", "!", "?", "^", "(", ")"}
 	for _, v := range prohibited {
 		s = strings.ReplaceAll(s, v, "_")
 	}
@@ -26,17 +20,17 @@ func getTableName() string {
 	var tableName string
 	fmt.Println("what should the table be named?")
 	fmt.Scanln(&tableName)
-	fmt.Println("your table is named:", tableName)
 	return tableName
 }
 
-// getUserChoice takes a map[int]string and returns string
+// getUserChoice takes a string and a map[int]string and returns string
 // getUserChoice takes user input and parses the string to int
 // to use in the map to return the valid choice or reprompt the user if the
 // choice is invalid
 func getUserChoice(choice string, validChoices map[int]string) string {
 	var userChoice string
 	var parsedChoice int
+	fmt.Println()
 	fmt.Printf("What is the type of %s\n", choice)
 	fmt.Println("The valid choices are:")
 	for i, v := range validChoices { //TODO map prints out of order. https://stackoverflow.com/questions/12108215/golang-map-prints-out-of-order
@@ -49,6 +43,7 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 	// loop based on validity of input
 	for {
 		if ok == false {
+			fmt.Println()
 			fmt.Printf("What is the type of %s\n", choice)
 			fmt.Println("Invalid choice:")
 			fmt.Println("The valid choices are:")

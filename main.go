@@ -9,11 +9,23 @@ import (
 func main() {
 
 	tableName := getTableName()
-	fmt.Println(tableName)
+	fmt.Println()
+	fmt.Println("Your table is named:", tableName)
+
+	validDBChoices := map[int]string{
+		1: "MySQL",
+		2: "Postgress",
+		3: "SQLServer",
+		4: "SQLite",
+	}
+
+	dbType := getUserChoice("database", validDBChoices)
+	fmt.Println()
+	fmt.Println("your database type is:", dbType)
 
 	// create valid choices map
 	// TODO create this dynamically by db type
-	validChoices := map[int]string{
+	validTypeChoices := map[int]string{
 		1: "string",
 		2: "int",
 		3: "float",
@@ -41,12 +53,10 @@ func main() {
 		newFirstLine = append(newFirstLine, sterilize(fd))
 	}
 
-	fmt.Println(newFirstLine)
-
 	// get types of headers
 	var fieldTypes []string
 	for _, col := range newFirstLine {
-		userChoice := getUserChoice(col, validChoices)
+		userChoice := getUserChoice(col, validTypeChoices)
 		fieldTypes = append(fieldTypes, userChoice)
 	}
 	fmt.Println(fieldTypes)
