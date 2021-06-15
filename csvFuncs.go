@@ -2,11 +2,23 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 )
 
-func sterilize(s string) string {
+func printSortedMap(m map[int]string) {
+	var si []int
+	for i := range m {
+		si = append(si, i)
+	}
+	sort.Ints(si)
+	for _, v := range si {
+		fmt.Printf("%d: %s\n", v, m[v])
+	}
+}
+
+func sanitize(s string) string {
 	prohibited := []string{";", ":", " ", "|", "-", "*", "/", "<", ">", ",", "=", "`", "~", "!", "?", "^", "(", ")"}
 	for _, v := range prohibited {
 		s = strings.ReplaceAll(s, v, "_")
@@ -30,12 +42,9 @@ func getTableName() string {
 func getUserChoice(choice string, validChoices map[int]string) string {
 	var userChoice string
 	var parsedChoice int
-	fmt.Println()
-	fmt.Printf("What is the type of %s\n", choice)
+	fmt.Printf("\nWhat is the type of %s\n", choice)
 	fmt.Println("The valid choices are:")
-	for i, v := range validChoices { //TODO map prints out of order. https://stackoverflow.com/questions/12108215/golang-map-prints-out-of-order
-		fmt.Println(i, ":", v)
-	}
+	printSortedMap(validChoices)
 	fmt.Println("Please input your choice")
 	fmt.Scanln(&userChoice)
 	parsedChoice, _ = strconv.Atoi(userChoice)    // converts string input to int
@@ -43,13 +52,9 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 	// loop based on validity of input
 	for {
 		if ok == false {
-			fmt.Println()
-			fmt.Printf("What is the type of %s\n", choice)
+			fmt.Printf("\nWhat is the type of %s\n", choice)
 			fmt.Println("Invalid choice:")
-			fmt.Println("The valid choices are:")
-			for i, v := range validChoices {
-				fmt.Println(i, ":", v)
-			}
+			printSortedMap(validChoices)
 			fmt.Println("Please input your choice")
 			fmt.Scanln(&userChoice)
 			parsedChoice, _ = strconv.Atoi(userChoice)

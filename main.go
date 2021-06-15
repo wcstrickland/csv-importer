@@ -9,8 +9,7 @@ import (
 func main() {
 
 	tableName := getTableName()
-	fmt.Println()
-	fmt.Println("Your table is named:", tableName)
+	fmt.Println("\nYour table is named:", tableName)
 
 	validDBChoices := map[int]string{
 		1: "MySQL",
@@ -20,8 +19,7 @@ func main() {
 	}
 
 	dbType := getUserChoice("database", validDBChoices)
-	fmt.Println()
-	fmt.Println("your database type is:", dbType)
+	fmt.Println("\nyour database type is:", dbType)
 
 	// create valid choices map
 	// TODO create this dynamically by db type
@@ -50,7 +48,7 @@ func main() {
 
 	var newFirstLine []string
 	for _, fd := range firstLine {
-		newFirstLine = append(newFirstLine, sterilize(fd))
+		newFirstLine = append(newFirstLine, sanitize(fd))
 	}
 
 	// get types of headers
