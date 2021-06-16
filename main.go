@@ -8,7 +8,9 @@ import (
 	"log"
 	//"github.com/jackc/pgx/v4"
 	_ "github.com/lib/pq"
+    _ "github.com/go-sql-driver/mysql"
 	"os"
+    "time"
 )
 
 var host, user, password, dbname string
@@ -18,7 +20,6 @@ func main() {
 	validDBChoices := map[int]string{
 		1: "MySQL",
 		2: "Postgres",
-		3: "SQLServer",
 		4: "SQLite",
 	}
 	dbType := getUserChoice("database", validDBChoices)
@@ -30,6 +31,9 @@ func main() {
 		fmt.Println("error:", err)
 		panic(err)
 	}
+    db.SetConnMaxLifetime(time.Minute * 3)
+    db.SetMaxOpenConns(10)
+    db.SetMaxIdleConns(10)
 	defer db.Close()
 
 	// Ping the db and Fatal out if the connection is not successful

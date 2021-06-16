@@ -72,7 +72,10 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 	return validChoice
 }
 
-func getPsqlInfo() {
+// getSqlInfo takes no arguments and returns a set of strings and ints used to construct a db driver string
+func getSqlInfo() (string, string, string, string, int){
+    var host, user, password, dbname string
+    var port int
 	fmt.Println("\nPlease enter host")
 	fmt.Scanln(&host)
 	fmt.Println("\nPlease enter port")
@@ -83,6 +86,7 @@ func getPsqlInfo() {
 	fmt.Scanln(&password)
 	fmt.Println("\nPlease enter dbname")
 	fmt.Scanln(&dbname)
+    return host, user, password, dbname, port
 }
 
 // parseValueByChoice takes a string and returns interface{}
@@ -101,19 +105,22 @@ func parseValueByChoice(choice string, value string) interface{} {
 	return "error"
 }
 
+// connectToDBtype takes a string representing a type of db and returns a *sql.DB and an error
+// the function handles returning a db connection for multiple db types
 func connectToDBtype(dbtype string) (*sql.DB, error) {
 	var db *sql.DB
 	var err error
 	switch dbtype {
 	case "Postgres":
-		getPsqlInfo()
+        host, user, password, dbname, port := getSqlInfo()
 		psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s", host, port, user, password, dbname)
 		db, err = sql.Open("postgres", psqlInfo)
 		return db, err
 	case "MySQL":
-		log.Fatalln("\nNot yet implemented. The program will now terminate")
-	case "SQLServer":
-		log.Fatalln("\nNot yet implemented. The program will now terminate")
+        host, user, password, dbname, port := getSqlInfo()
+        //mysqlInfo := TODO
+        db, err = sql.Open("mysql", mysqlInfo)
+        return db, err
 	case "SQLite":
 		log.Fatalln("\nNot yet implemented. The program will now terminate")
 	}
