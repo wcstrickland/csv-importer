@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -70,6 +72,19 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 	return validChoice
 }
 
+func getPsqlInfo() {
+	fmt.Println("\nPlease enter host")
+	fmt.Scanln(&host)
+	fmt.Println("\nPlease enter port")
+	fmt.Scanln(&port)
+	fmt.Println("\nPlease enter user")
+	fmt.Scanln(&user)
+	fmt.Println("\nPlease enter password")
+	fmt.Scanln(&password)
+	fmt.Println("\nPlease enter dbname")
+	fmt.Scanln(&dbname)
+}
+
 // parseValueByChoice takes a string and returns interface{}
 // the string input is evaluated and each case performs appropriate strconv.Method()
 func parseValueByChoice(choice string, value string) interface{} {
@@ -84,4 +99,23 @@ func parseValueByChoice(choice string, value string) interface{} {
 		return v2
 	}
 	return "error"
+}
+
+func connectToDBtype(dbtype string) (*sql.DB, error) {
+	var db *sql.DB
+	var err error
+	switch dbtype {
+	case "Postgres":
+		getPsqlInfo()
+		psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s", host, port, user, password, dbname)
+		db, err = sql.Open("postgres", psqlInfo)
+		return db, err
+	case "MySQL":
+		log.Fatalln("\nNot yet implemented. The program will now terminate")
+	case "SQLServer":
+		log.Fatalln("\nNot yet implemented. The program will now terminate")
+	case "SQLite":
+		log.Fatalln("\nNot yet implemented. The program will now terminate")
+	}
+	return db, err
 }

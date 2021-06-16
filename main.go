@@ -1,26 +1,47 @@
 package main
 
 import (
+	//"context"
+	//"database/sql"
 	"encoding/csv"
 	"fmt"
+	"log"
 	//"github.com/jackc/pgx/v4"
+	_ "github.com/lib/pq"
 	"os"
 )
 
+var host, user, password, dbname string
+var port int
+
 func main() {
-
-	tableName := getTableName()
-	fmt.Println("\nYour table is named:", tableName)
-
 	validDBChoices := map[int]string{
 		1: "MySQL",
-		2: "Postgress",
+		2: "Postgres",
 		3: "SQLServer",
 		4: "SQLite",
 	}
-
 	dbType := getUserChoice("database", validDBChoices)
 	fmt.Println("\nyour database type is:", dbType)
+
+	// connectToDBtype handles the connection via switch cases for different db types
+	db, err := connectToDBtype(dbType)
+	if err != nil {
+		fmt.Println("error:", err)
+		panic(err)
+	}
+	defer db.Close()
+
+	// Ping the db and Fatal out if the connection is not successful
+	err = db.Ping()
+	if err != nil {
+		log.Fatalln("\nyou connection status is: not connected The program will now terminate")
+	}
+	fmt.Println("\nyou connection status is: connected \n")
+
+	// get the table name
+	tableName := getTableName()
+	fmt.Println("\nYour table is named:", tableName)
 
 	// create valid choices map
 	// TODO create this dynamically by db type
@@ -31,6 +52,7 @@ func main() {
 	}
 
 	// open csv file
+	// TODO get this dynamically either via command line or by user input at runtime
 	f, err := os.Open("sample.csv")
 	if err != nil {
 		fmt.Println("error:", err)
@@ -47,6 +69,7 @@ func main() {
 		fmt.Println("error:", err)
 	}
 
+	// sanitize field names
 	var newFirstLine []string
 	for _, fd := range firstLine {
 		newFirstLine = append(newFirstLine, sanitize(fd))
