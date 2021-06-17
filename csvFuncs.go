@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	//"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -73,9 +73,8 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 }
 
 // getSqlInfo takes no arguments and returns a set of strings and ints used to construct a db driver string
-func getSqlInfo() (string, string, string, string, int){
-    var host, user, password, dbname string
-    var port int
+func getSqlInfo() (string, string, string, string, string) {
+	var host, user, password, dbname, port string
 	fmt.Println("\nPlease enter host")
 	fmt.Scanln(&host)
 	fmt.Println("\nPlease enter port")
@@ -86,11 +85,13 @@ func getSqlInfo() (string, string, string, string, int){
 	fmt.Scanln(&password)
 	fmt.Println("\nPlease enter dbname")
 	fmt.Scanln(&dbname)
-    return host, user, password, dbname, port
+	return host, user, password, dbname, port
 }
 
 // parseValueByChoice takes a string and returns interface{}
 // the string input is evaluated and each case performs appropriate strconv.Method()
+// possibly not needed if the database query is a string and the type conversion is passed to the
+// database to handle. Possibly useful outside of this project
 func parseValueByChoice(choice string, value string) interface{} {
 	switch choice {
 	case "string":
@@ -112,17 +113,37 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 	var err error
 	switch dbtype {
 	case "Postgres":
-        host, user, password, dbname, port := getSqlInfo()
-		psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s", host, port, user, password, dbname)
+		host, user, password, dbname, port := getSqlInfo()
+		psqlInfoMap := map[string]string{
+			"host":     fmt.Sprintf("host=%s", host),
+			"user":     fmt.Sprintf("user=%s", user),
+			"password": fmt.Sprintf("password=%s", password),
+			"dbname":   fmt.Sprintf("dbname=%s", dbname),
+			"port":     fmt.Sprintf("port=%s", port),
+		}
+		psqlInfo := ""
+		for _, v := range psqlInfoMap {
+			lastChar := v[len(v)-1:]
+			if lastChar != "=" {
+				psqlInfo += fmt.Sprint(v, " ")
+			}
+		}
+		//psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s", host, port, user, password, dbname)
 		db, err = sql.Open("postgres", psqlInfo)
 		return db, err
-	case "MySQL":
-        host, user, password, dbname, port := getSqlInfo()
-        //mysqlInfo := TODO
-        db, err = sql.Open("mysql", mysqlInfo)
-        return db, err
+		//	case "MySQL":
+		//		host, user, password, dbname, port := getSqlInfo()
+		//		mysqlInfo := TODO
+		//		db, err = sql.Open("mysql", mysqlInfo)
+		//		return db, err
 	case "SQLite":
-		log.Fatalln("\nNot yet implemented. The program will now terminate")
+		//var sqliteFileName string
+		sqliteFileName := ""
+		fmt.Println("what do you want to name your SQLite file?\n")
+		fmt.Scanln(&sqliteFileName)
+		liteDsn := fmt.Sprintf("file:%s.db", sqliteFileName)
+		db, err = sql.Open("sqlite", liteDsn)
+		return db, err
 	}
 	return db, err
 }

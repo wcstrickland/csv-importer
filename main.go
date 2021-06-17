@@ -5,12 +5,12 @@ import (
 	//"database/sql"
 	"encoding/csv"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
+	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
 	"log"
-	//"github.com/jackc/pgx/v4"
-	_ "github.com/lib/pq"
-    _ "github.com/go-sql-driver/mysql"
+	_ "modernc.org/sqlite"
 	"os"
-    "time"
+	"time"
 )
 
 var host, user, password, dbname string
@@ -31,15 +31,15 @@ func main() {
 		fmt.Println("error:", err)
 		panic(err)
 	}
-    db.SetConnMaxLifetime(time.Minute * 3)
-    db.SetMaxOpenConns(10)
-    db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
 	defer db.Close()
 
 	// Ping the db and Fatal out if the connection is not successful
 	err = db.Ping()
 	if err != nil {
-		log.Fatalln("\nyou connection status is: not connected The program will now terminate")
+		log.Fatalln("\nYour database connection failed!\nThe program will now terminate")
 	}
 	fmt.Println("\nyou connection status is: connected \n")
 
@@ -99,6 +99,6 @@ func main() {
 			c := parseValueByChoice(fieldTypes[i], col)
 			row = append(row, c)
 		}
-		fmt.Println(row) // this `row` is a slice with values of different types ready for insertion
+		fmt.Println(row) // this `row` is []interface{} ready for insertion
 	}
 }
