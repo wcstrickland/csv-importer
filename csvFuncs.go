@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	//"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -88,24 +87,6 @@ func getSqlInfo() (string, string, string, string, string) {
 	return host, user, password, dbname, port
 }
 
-// parseValueByChoice takes a string and returns interface{}
-// the string input is evaluated and each case performs appropriate strconv.Method()
-// possibly not needed if the database query is a string and the type conversion is passed to the
-// database to handle. Possibly useful outside of this project
-func parseValueByChoice(choice string, value string) interface{} {
-	switch choice {
-	case "string":
-		return value
-	case "int":
-		v1, _ := strconv.Atoi(value)
-		return v1
-	case "float":
-		v2, _ := strconv.ParseFloat(value, 64)
-		return v2
-	}
-	return "error"
-}
-
 // connectToDBtype takes a string representing a type of db and returns a *sql.DB and an error
 // the function handles returning a db connection for multiple db types
 func connectToDBtype(dbtype string) (*sql.DB, error) {
@@ -139,11 +120,31 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 	case "SQLite":
 		//var sqliteFileName string
 		sqliteFileName := ""
-		fmt.Println("what do you want to name your SQLite file?\n")
+		fmt.Println("\nwhat SQLite file do you want to use?")
+		fmt.Println("If your file is outside of this directory Please provide an absolute path to the file:\n")
 		fmt.Scanln(&sqliteFileName)
+		//TODO check if file exists and if not create it. alert user of this process.
 		liteDsn := fmt.Sprintf("file:%s.db", sqliteFileName)
 		db, err = sql.Open("sqlite", liteDsn)
 		return db, err
 	}
 	return db, err
+}
+
+// parseValueByChoice takes a string and returns interface{}
+// the string input is evaluated and each case performs appropriate strconv.Method()
+// possibly not needed if the database query is a string and the type conversion is passed to the
+// database to handle. Possibly useful outside of this project
+func parseValueByChoice(choice string, value string) interface{} {
+	switch choice {
+	case "string":
+		return value
+	case "int":
+		v1, _ := strconv.Atoi(value)
+		return v1
+	case "float":
+		v2, _ := strconv.ParseFloat(value, 64)
+		return v2
+	}
+	return "error"
 }
