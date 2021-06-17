@@ -2,7 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -123,8 +126,18 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 		fmt.Println("\nwhat SQLite file do you want to use?")
 		fmt.Println("If your file is outside of this directory Please provide an absolute path to the file:\n")
 		fmt.Scanln(&sqliteFileName)
+		sqliteFileName = fmt.Sprintf("%s.db", sqliteFileName)
+		if _, err = os.Open(sqliteFileName); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				_, err = os.Create(sqliteFileName)
+				fmt.Println("\nThe file you requested did not exist, but has now been created\n")
+				if err != nil {
+					fmt.Println("error:", err)
+				}
+			}
+		}
 		//TODO check if file exists and if not create it. alert user of this process.
-		liteDsn := fmt.Sprintf("file:%s.db", sqliteFileName)
+		liteDsn := fmt.Sprintf("file:%s", sqliteFileName)
 		db, err = sql.Open("sqlite", liteDsn)
 		return db, err
 	}

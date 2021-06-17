@@ -21,10 +21,10 @@ func main() {
 	for _, v := range os.Args[1:] {
 		f, err := os.Open(v)
 		if err != nil {
-			fmt.Pringln("!!!!!!!!!!!!!!!!!")
+			fmt.Println("!!!!!!!!!!!!!!!!!")
 			fmt.Println("\nerror:", err)
 			fmt.Println("\nMoving to next file\n")
-			fmt.Pringln("!!!!!!!!!!!!!!!!!")
+			fmt.Println("!!!!!!!!!!!!!!!!!")
 			continue
 		}
 		defer f.Close()
