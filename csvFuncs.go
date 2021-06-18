@@ -115,11 +115,11 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 		//psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s", host, port, user, password, dbname)
 		db, err = sql.Open("postgres", psqlInfo)
 		return db, err
-		//	case "MySQL":
-		//		host, user, password, dbname, port := getSqlInfo()
-		//		mysqlInfo := TODO
-		//		db, err = sql.Open("mysql", mysqlInfo)
-		//		return db, err
+	case "MySQL":
+		host, user, password, dbname, _ := getSqlInfo()
+		mysqlInfo := fmt.Sprintf("%s:%s@(%s)/%s", user, password, host, dbname)
+		db, err = sql.Open("mysql", mysqlInfo)
+		return db, err
 	case "SQLite":
 		//var sqliteFileName string
 		sqliteFileName := ""
