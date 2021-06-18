@@ -4,12 +4,14 @@ import (
 	//"context"
 	//"database/sql"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
 	"log"
 	_ "modernc.org/sqlite"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -17,8 +19,14 @@ var host, user, password, dbname string
 var port int
 
 func main() {
+	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
+	flag.Parse()
+
 	// loop over all comand line arguments and perform the program on each csv file
 	for _, v := range os.Args[1:] {
+		if strings.HasPrefix(v, "-") {
+			continue
+		}
 		f, err := os.Open(v)
 		if err != nil {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
@@ -36,7 +44,9 @@ func main() {
 			3: "SQLite",
 		}
 		dbType := getUserChoice("database", validDBChoices)
-		fmt.Println("\nyour database type is:", dbType)
+		if !*quietFlag {
+			fmt.Println("\nyour database type is:", dbType)
+		}
 
 		// connectToDBtype handles the connection via switch cases for different db types
 		db, err := connectToDBtype(dbType)
@@ -55,11 +65,14 @@ func main() {
 			fmt.Println("error:", err)
 			log.Fatalln("\nYour database connection failed!\nThe program will now terminate")
 		}
-		fmt.Println("\nyou connection status is: connected \n")
-
+		if !*quietFlag {
+			fmt.Println("\nyou connection status is: connected \n")
+		}
 		// get the table name
 		tableName := getTableName()
-		fmt.Println("\nYour table is named:", tableName)
+		if !*quietFlag {
+			fmt.Println("\nYour table is named:", tableName)
+		}
 
 		// create valid choices map
 		// TODO create this dynamically by db type
@@ -90,7 +103,9 @@ func main() {
 			userChoice := getUserChoice(col, validTypeChoices)
 			fieldTypes = append(fieldTypes, userChoice)
 		}
-		fmt.Println(fieldTypes)
+		if !*quietFlag {
+			fmt.Println(fieldTypes)
+		}
 
 		// read lines temporarily using a loop to work with smaller numbers of lines
 		for i := 0; i < 1; i++ {
@@ -104,7 +119,9 @@ func main() {
 				c := parseValueByChoice(fieldTypes[i], col)
 				row = append(row, c)
 			}
-			fmt.Println(row) // this `row` is []interface{} ready for insertion
+			if !*quietFlag {
+				fmt.Println(row) // this `row` is []interface{} ready for insertion
+			}
 		}
 	}
 }

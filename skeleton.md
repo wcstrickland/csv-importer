@@ -1,8 +1,10 @@
 # Plan
 
+
 ## ask for csv filename
 - [x] ask for absolute path?  
 - [x] command line argument to the program?  
+- [x] flags?
 
 ## ask for info to connect to DB
 - [ ] uri?/dsn?  
