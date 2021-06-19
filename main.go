@@ -38,6 +38,7 @@ func main() {
 		defer f.Close()
 		fmt.Println("\nThe currently selected file is:", v)
 
+		// dont change these even the case. they are keys in the connect to db function.
 		validDBChoices := map[int]string{
 			1: "MySQL",
 			2: "Postgres",
@@ -68,21 +69,39 @@ func main() {
 		if !*quietFlag {
 			fmt.Println("\nyou connection status is: connected \n")
 		}
+
 		// get the table name
 		tableName := getTableName()
 		if !*quietFlag {
 			fmt.Println("\nYour table is named:", tableName)
 		}
 
-		// create valid choices map
-		// TODO create this dynamically by db type
-		validTypeChoices := map[int]string{
-			1: "string",
-			2: "int",
-			3: "float",
+		validMysqlChoices := map[int]string{
+			1: "VARCHAR(60)",
+			2: "INT",
+			3: "FLOAT",
+			4: "DECIMAL",
+			5: "DATE",
+			6: "TIME",
+		}
+		validPostgresChoices := map[int]string{
+			1: "varchar(60)",
+			2: "integer",
+			3: "float(12)",
+			4: "date",
+			5: "time(6)",
+		}
+		validSqliteChoices := map[int]string{
+			1: "TEXT",
+			2: "INTEGER",
+			3: "REAL",
+		}
+		dbTypeChoices := map[string]map[int]string{
+			"MySql":    validMysqlChoices,
+			"Postgres": validPostgresChoices,
+			"SQLite":   validSqliteChoices,
 		}
 
-		// make new csv.Reader from file
 		r := csv.NewReader(f)
 
 		// read first line for headers
@@ -100,7 +119,7 @@ func main() {
 		// get types of headers
 		var fieldTypes []string
 		for _, col := range newFirstLine {
-			userChoice := getUserChoice(col, validTypeChoices)
+			userChoice := getUserChoice(col, dbTypeChoices[dbType])
 			fieldTypes = append(fieldTypes, userChoice)
 		}
 		if !*quietFlag {
