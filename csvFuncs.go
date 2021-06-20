@@ -156,6 +156,16 @@ func connectMysql() (*sql.DB, error) {
 	return db, err
 }
 
+func createQueryString(tableName string, fieldTypes, newFirstLine []string) string {
+	createQueryString := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", tableName)
+	for i := 0; i < len(fieldTypes); i++ {
+		createQueryString += fmt.Sprintf("%s %s, ", newFirstLine[i], fieldTypes[i])
+	}
+	createQueryString = strings.TrimSuffix(createQueryString, ", ")
+	createQueryString += ")"
+	return createQueryString
+}
+
 func createTable(db *sql.DB, query string) error {
 	// time out context
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
