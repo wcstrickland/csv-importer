@@ -127,20 +127,20 @@ func main() {
 		}
 
 		// read lines temporarily using a loop to work with smaller numbers of lines
-		for i := 0; i < 1; i++ {
-			record, err := r.Read()
-			if err != nil {
-				fmt.Println("error:", err)
-			}
-			// range over an record to access colums
-			var row []interface{}
-			for i, col := range record {
-				c := parseValueByChoice(fieldTypes[i], col)
-				row = append(row, c)
-			}
-			if !*quietFlag {
-				fmt.Println(row) // this `row` is []interface{} ready for insertion
-			}
-		}
+		//		for i := 0; i < 1; i++ {
+		//			record, err := r.Read()
+		//			if err != nil {
+		//				fmt.Println("error:", err)
+		//			}
+		// range over an record to access colums
+		//			var row []interface{}
+		//			for i, col := range record {
+		//				c := parseValueByChoice(fieldTypes[i], col)
+		//				row = append(row, c)
+		//			}
+		//			if !*quietFlag {
+		//				fmt.Println(row) // this `row` is []interface{} ready for insertion
+		//			}
+		//		}
 	}
 }

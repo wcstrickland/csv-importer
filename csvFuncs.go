@@ -112,7 +112,6 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 				psqlInfo += fmt.Sprint(v, " ")
 			}
 		}
-		//psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s", host, port, user, password, dbname)
 		db, err = sql.Open("postgres", psqlInfo)
 		return db, err
 	case "MySQL":
@@ -136,7 +135,6 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 				}
 			}
 		}
-		//TODO check if file exists and if not create it. alert user of this process.
 		liteDsn := fmt.Sprintf("file:%s", sqliteFileName)
 		db, err = sql.Open("sqlite", liteDsn)
 		return db, err
