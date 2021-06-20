@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	host, port, user, password, dbname string
-	db                                 *sql.DB
-	err                                error
+	dbType, host, port, user, password, dbname string
+	db                                         *sql.DB
+	err                                        error
 )
 
 // DONT CHANGE THESE! EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
