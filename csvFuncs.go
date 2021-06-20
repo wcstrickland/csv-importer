@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // printSortedMap takes a map[int]string and has no return value
@@ -127,7 +129,7 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 		fmt.Scanln(&sqliteFileName)
 		sqliteFileName = fmt.Sprintf("%s.db", sqliteFileName)
 		if _, err = os.Open(sqliteFileName); err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
+			if errors.Is(err, fs.ErrNotExist) { // os.O_Open|os.O_Create?
 				_, err = os.Create(sqliteFileName)
 				fmt.Println("\nThe file you requested did not exist, but has now been created\n")
 				if err != nil {
@@ -158,4 +160,21 @@ func parseValueByChoice(choice string, value string) interface{} {
 		return v2
 	}
 	return "error"
+}
+
+func createTable(db *sql.DB, query string) error {
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	res, err := db.ExecContext(ctx, query)
+	if err != nil {
+		fmt.Println("error:", err)
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		fmt.Println("error:", err)
+		return err
+	}
+	fmt.Println(rows, "affected when creating table")
+	return nil
 }

@@ -126,6 +126,15 @@ func main() {
 			fmt.Println(fieldTypes)
 		}
 
+		createQueryString := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", tableName)
+		for i := 0; i < len(fieldTypes); i++ {
+			createQueryString += fmt.Sprintf("%s %s, ", newFirstLine[i], fieldTypes[i])
+		}
+		createQueryString = strings.TrimSuffix(createQueryString, ", ")
+		createQueryString += ")"
+		if err := createTable(db, createQueryString); err != nil {
+			fmt.Println("error", err)
+		}
 		// read lines temporarily using a loop to work with smaller numbers of lines
 		//		for i := 0; i < 1; i++ {
 		//			record, err := r.Read()
