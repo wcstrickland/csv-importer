@@ -21,11 +21,10 @@ var (
 	err                                        error
 )
 
-// DONT CHANGE THESE! EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
 var validDBChoices = map[int]string{
-	1: "MySQL",
-	2: "Postgres",
-	3: "SQLite",
+	1: "mysql",
+	2: "postgres",
+	3: "sqlite",
 }
 
 var validMysqlChoices = map[int]string{
@@ -49,9 +48,9 @@ var validSqliteChoices = map[int]string{
 	3: "REAL",
 }
 var dbTypeChoices = map[string]map[int]string{
-	"MySql":    validMysqlChoices,
-	"Postgres": validPostgresChoices,
-	"SQLite":   validSqliteChoices,
+	"mysql":    validMysqlChoices,
+	"postgres": validPostgresChoices,
+	"sqlite":   validSqliteChoices,
 }
 
 func main() {
