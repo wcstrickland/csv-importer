@@ -21,6 +21,39 @@ var (
 	err                                error
 )
 
+// DONT CHANGE THESE! EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
+var validDBChoices = map[int]string{
+	1: "MySQL",
+	2: "Postgres",
+	3: "SQLite",
+}
+
+var validMysqlChoices = map[int]string{
+	1: "VARCHAR(60)",
+	2: "INT",
+	3: "FLOAT",
+	4: "DECIMAL",
+	5: "DATE",
+	6: "TIME",
+}
+var validPostgresChoices = map[int]string{
+	1: "varchar(60)",
+	2: "integer",
+	3: "float(12)",
+	4: "date",
+	5: "time(6)",
+}
+var validSqliteChoices = map[int]string{
+	1: "TEXT",
+	2: "INTEGER",
+	3: "REAL",
+}
+var dbTypeChoices = map[string]map[int]string{
+	"MySql":    validMysqlChoices,
+	"Postgres": validPostgresChoices,
+	"SQLite":   validSqliteChoices,
+}
+
 func main() {
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
 	flag.Parse()
@@ -40,19 +73,16 @@ func main() {
 		}
 		defer f.Close()
 		fmt.Println("\nThe currently selected file is:", v)
+		// make a csv Reader from the file
+		r := csv.NewReader(f)
 
-		// DONT CHANGE THESE EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
-		validDBChoices := map[int]string{
-			1: "MySQL",
-			2: "Postgres",
-			3: "SQLite",
-		}
+		//GET DB TYPE
 		dbType := getUserChoice("database", validDBChoices)
 		if !*quietFlag {
 			fmt.Println("\nyour database type is:", dbType)
 		}
 
-		// CONNECTtOdbTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
+		// CONNECTTODBTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
 		db, err := connectToDBtype(dbType)
 		if err != nil {
 			fmt.Println("error:", err)
@@ -63,7 +93,7 @@ func main() {
 		db.SetMaxIdleConns(10)
 		defer db.Close()
 
-		// pING THE DB AND fATAL OUT IF THE CONNECTION IS NOT SUCCESSFUL
+		// PING THE DB AND FATAL OUT IF THE CONNECTION IS NOT SUCCESSFUL
 		err = db.Ping()
 		if err != nil {
 			fmt.Println("error:", err)
@@ -78,34 +108,6 @@ func main() {
 		if !*quietFlag {
 			fmt.Println("\nYour table is named:", tableName)
 		}
-
-		validMysqlChoices := map[int]string{
-			1: "VARCHAR(60)",
-			2: "INT",
-			3: "FLOAT",
-			4: "DECIMAL",
-			5: "DATE",
-			6: "TIME",
-		}
-		validPostgresChoices := map[int]string{
-			1: "varchar(60)",
-			2: "integer",
-			3: "float(12)",
-			4: "date",
-			5: "time(6)",
-		}
-		validSqliteChoices := map[int]string{
-			1: "TEXT",
-			2: "INTEGER",
-			3: "REAL",
-		}
-		dbTypeChoices := map[string]map[int]string{
-			"MySql":    validMysqlChoices,
-			"Postgres": validPostgresChoices,
-			"SQLite":   validSqliteChoices,
-		}
-
-		r := csv.NewReader(f)
 
 		// READ FIRST LINE FOR HEADERS
 		firstLine, err := r.Read()

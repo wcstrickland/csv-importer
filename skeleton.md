@@ -7,30 +7,35 @@
 - [x] flags?
 
 ## ask for info to connect to DB
-- [ ] uri?/dsn?  
+- [ ] uri?
+- [ ] dsn?  
 - [x] postgres  
 - [ ] mysql  
 - [x] sqlite3  
 
-## ~~ask for table name~~
+## ask for table name
 - [x] DONE
 
-## ask what type of DB : from list of supported options i.e. Mysql for start
-- [ ] what data types are supported  
+## ask what type of DB 
+- [x] make connection based on selected DB type
+- [x] change field type options available based on user selected DB Type
 
 ## loop over first line(headers)
-- [x] ~~sterilize fields~~  
-- [x] ~~print field to stdout~~  
-- [x] ~~depending on available datatypes create a map[int]string or map[int]int for letting the user "type" each field~~  
-- [x] ~~store each response in a slice in the same order as the fields~~  
-- [ ] use orm to create the table based on the headers and user input for table name  
+- [x] sterilize fields  
+- [x] print field to stdout  
+- [x] depending on available datatypes create a map[int]string or map[int]int for letting the user "type" each field  
+- [x] store each response in a slice in the same order as the fields  
+- [x] create the table based on the headers and user input for table name  
 
 ## loop over remaining lines
 - [x] range over each record  
-- [x] ~~for each column run a switch statement where each case is a different datatype key held in the slice and the action on each case is the appropriate strconv.Method()~~  
-- [ ] ~~create map[string]interface{} for each record and use orm to create a SQL object~~  
-- [ ] send each object onto a job channel  
-- [ ] have workers pull jobs and execute the insertion query. also the workers may be better suited to convert the map[string]interface{} to SQL object and then run the insertion  
+- [ ] create prepared statement for insertion
+- [ ] send each row onto a job channel  
+- [ ] have workers pull jobs
+- [ ] have workers send a result onto a results channel
+- [ ] this reslut could be to increment a counter
+- [ ] or an empty result where the channel counts the number of results it recieved
+- [ ] return number of rows affected
 
 ## end
 - [ ] time the process  
