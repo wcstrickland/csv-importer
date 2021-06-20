@@ -56,8 +56,8 @@ var dbTypeChoices = map[string]map[int]string{
 
 func main() {
 	useCmdLineDB := flag.Bool("db", false, "select database type at cmd line")
-	cmdLineDB := flag.String("t", "", "selected database type")
-	//dbConnString := flag.String("c", "", "URI/DSN")
+	cmdLineDB := flag.String("t", "", "selected database type") // TODO validate this
+	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
 	flag.Parse()
 
@@ -91,7 +91,11 @@ func main() {
 		fmt.Println(dbType)
 
 		// CONNECTTODBTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
-		db, err = connectToDBtype(dbType)
+		if !*useCmdLineDB {
+			db, err = connectToDBtype(dbType)
+		} else {
+			db, err = sql.Open(dbType, *dbConnString)
+		}
 		if err != nil {
 			fmt.Println("error:", err)
 			panic(err)
