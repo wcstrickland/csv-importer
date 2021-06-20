@@ -21,7 +21,6 @@ var (
 	err                                                 error
 )
 
-// DONT CHANGE THESE! EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
 var validDBChoices = map[int]string{
 	1: "mysql",
 	2: "postgres",
@@ -154,13 +153,8 @@ func main() {
 		}
 
 		// CREATE THE TABLE
-		createQueryString := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", tableName)
-		for i := 0; i < len(fieldTypes); i++ {
-			createQueryString += fmt.Sprintf("%s %s, ", newFirstLine[i], fieldTypes[i])
-		}
-		createQueryString = strings.TrimSuffix(createQueryString, ", ")
-		createQueryString += ")"
-		if err := createTable(db, createQueryString); err != nil {
+		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
+		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
 		}
 		// read lines temporarily using a loop to work with smaller numbers of lines
