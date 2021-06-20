@@ -78,7 +78,6 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 
 // getSqlInfo takes no arguments and returns a set of strings and ints used to construct a db driver string
 func getSqlInfo() (string, string, string, string, string) {
-	var host, user, password, dbname, port string
 	fmt.Println("\nPlease enter host")
 	fmt.Scanln(&host)
 	fmt.Println("\nPlease enter port")
@@ -95,74 +94,70 @@ func getSqlInfo() (string, string, string, string, string) {
 // connectToDBtype takes a string representing a type of db and returns a *sql.DB and an error
 // the function handles returning a db connection for multiple db types
 func connectToDBtype(dbtype string) (*sql.DB, error) {
-	var db *sql.DB
-	var err error
 	switch dbtype {
 	case "Postgres":
-		host, user, password, dbname, port := getSqlInfo()
-		psqlInfoMap := map[string]string{
-			"host":     fmt.Sprintf("host=%s", host),
-			"user":     fmt.Sprintf("user=%s", user),
-			"password": fmt.Sprintf("password=%s", password),
-			"dbname":   fmt.Sprintf("dbname=%s", dbname),
-			"port":     fmt.Sprintf("port=%s", port),
-		}
-		psqlInfo := ""
-		for _, v := range psqlInfoMap {
-			lastChar := v[len(v)-1:]
-			if lastChar != "=" {
-				psqlInfo += fmt.Sprint(v, " ")
-			}
-		}
-		psqlInfo += fmt.Sprint(" sslmode=disable")
-		db, err = sql.Open("postgres", psqlInfo)
+		db, err := connectPostgres()
 		return db, err
 	case "MySQL":
-		host, user, password, dbname, _ := getSqlInfo()
-		mysqlInfo := fmt.Sprintf("%s:%s@(%s)/%s", user, password, host, dbname)
-		db, err = sql.Open("mysql", mysqlInfo)
+		db, err := connectMysql()
 		return db, err
 	case "SQLite":
-		sqliteFileName := ""
-		fmt.Println("\nwhat SQLite file do you want to use?")
-		fmt.Println("If your file is outside of this directory Please provide an absolute path to the file:\n")
-		fmt.Scanln(&sqliteFileName)
-		sqliteFileName = fmt.Sprintf("%s.db", sqliteFileName)
-		if _, err = os.Open(sqliteFileName); err != nil {
-			if errors.Is(err, fs.ErrNotExist) { // os.O_Open|os.O_Create?
-				_, err = os.Create(sqliteFileName)
-				fmt.Println("\nThe file you requested did not exist, but has now been created\n")
-				if err != nil {
-					fmt.Println("error:", err)
-				}
-			}
-		}
-		liteDsn := fmt.Sprintf("file:%s", sqliteFileName)
-		db, err = sql.Open("sqlite", liteDsn)
+		db, err := connectSqlite()
 		return db, err
 	}
 	return db, err
 }
 
-// parseValueByChoice takes a string and returns interface{}
-// the string input is evaluated and each case performs appropriate strconv.Method()
-// possibly not needed if the database query is a string and the type conversion is passed to the
-// database to handle. Possibly useful outside of this project
-func parseValueByChoice(choice string, value string) interface{} {
-	switch choice {
-	case "string":
-		return value
-	case "int":
-		v1, _ := strconv.Atoi(value)
-		return v1
-	case "float":
-		v2, _ := strconv.ParseFloat(value, 64)
-		return v2
+func connectSqlite() (*sql.DB, error) {
+	sqliteFileName := ""
+	fmt.Println("\nwhat SQLite file do you want to use?")
+	fmt.Println("If your file is outside of this directory Please provide an absolute path to the file:\n")
+	fmt.Scanln(&sqliteFileName)
+	sqliteFileName = fmt.Sprintf("%s.db", sqliteFileName)
+	if _, err = os.Open(sqliteFileName); err != nil {
+		if errors.Is(err, fs.ErrNotExist) { // os.O_Open|os.O_Create?
+			_, err = os.Create(sqliteFileName)
+			fmt.Println("\nThe file you requested did not exist, but has now been created\n")
+			if err != nil {
+				fmt.Println("error:", err)
+			}
+		}
 	}
-	return "error"
+	liteDsn := fmt.Sprintf("file:%s", sqliteFileName)
+	db, err = sql.Open("sqlite", liteDsn)
+	return db, err
+}
+
+func connectPostgres() (*sql.DB, error) {
+	host, user, password, dbname, port := getSqlInfo()
+	psqlInfoMap := map[string]string{
+		"host":     fmt.Sprintf("host=%s", host),
+		"user":     fmt.Sprintf("user=%s", user),
+		"password": fmt.Sprintf("password=%s", password),
+		"dbname":   fmt.Sprintf("dbname=%s", dbname),
+		"port":     fmt.Sprintf("port=%s", port),
+	}
+	psqlInfo := ""
+	for _, v := range psqlInfoMap {
+		lastChar := v[len(v)-1:]
+		if lastChar != "=" {
+			psqlInfo += fmt.Sprint(v, " ")
+		}
+	}
+	psqlInfo += fmt.Sprint(" sslmode=disable")
+	db, err = sql.Open("postgres", psqlInfo)
+	return db, err
+}
+
+func connectMysql() (*sql.DB, error) {
+	host, user, password, dbname, _ := getSqlInfo()
+	mysqlInfo := fmt.Sprintf("%s:%s@(%s)/%s", user, password, host, dbname)
+	db, err = sql.Open("mysql", mysqlInfo)
+	return db, err
 }
 
 func createTable(db *sql.DB, query string) error {
+	// time out context
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	res, err := db.ExecContext(ctx, query)

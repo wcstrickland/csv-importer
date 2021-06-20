@@ -2,7 +2,7 @@ package main
 
 import (
 	//"context"
-	//"database/sql"
+	"database/sql"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -15,14 +15,17 @@ import (
 	"time"
 )
 
-var host, user, password, dbname string
-var port int
+var (
+	host, port, user, password, dbname string
+	db                                 *sql.DB
+	err                                error
+)
 
 func main() {
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
 	flag.Parse()
 
-	// loop over all comand line arguments and perform the program on each csv file
+	// LOOP OVER ALL COMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
 	for _, v := range os.Args[1:] {
 		if strings.HasPrefix(v, "-") {
 			continue
@@ -38,7 +41,7 @@ func main() {
 		defer f.Close()
 		fmt.Println("\nThe currently selected file is:", v)
 
-		// dont change these even the case. they are keys in the connect to db function.
+		// DONT CHANGE THESE EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
 		validDBChoices := map[int]string{
 			1: "MySQL",
 			2: "Postgres",
@@ -49,7 +52,7 @@ func main() {
 			fmt.Println("\nyour database type is:", dbType)
 		}
 
-		// connectToDBtype handles the connection via switch cases for different db types
+		// CONNECTtOdbTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
 		db, err := connectToDBtype(dbType)
 		if err != nil {
 			fmt.Println("error:", err)
@@ -60,7 +63,7 @@ func main() {
 		db.SetMaxIdleConns(10)
 		defer db.Close()
 
-		// Ping the db and Fatal out if the connection is not successful
+		// pING THE DB AND fATAL OUT IF THE CONNECTION IS NOT SUCCESSFUL
 		err = db.Ping()
 		if err != nil {
 			fmt.Println("error:", err)
@@ -70,7 +73,7 @@ func main() {
 			fmt.Println("\nyou connection status is: connected \n")
 		}
 
-		// get the table name
+		// GET THE TABLE NAME
 		tableName := getTableName()
 		if !*quietFlag {
 			fmt.Println("\nYour table is named:", tableName)
@@ -104,19 +107,19 @@ func main() {
 
 		r := csv.NewReader(f)
 
-		// read first line for headers
+		// READ FIRST LINE FOR HEADERS
 		firstLine, err := r.Read()
 		if err != nil {
 			fmt.Println("error:", err)
 		}
 
-		// sanitize field names
+		// sANITIZE FIELD NAMES
 		var newFirstLine []string
 		for _, fd := range firstLine {
 			newFirstLine = append(newFirstLine, sanitize(fd))
 		}
 
-		// get types of headers
+		// GET TYPES OF HEADERS
 		var fieldTypes []string
 		for _, col := range newFirstLine {
 			userChoice := getUserChoice(col, dbTypeChoices[dbType])
@@ -126,6 +129,7 @@ func main() {
 			fmt.Println(fieldTypes)
 		}
 
+		// CREATE THE TABLE
 		createQueryString := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", tableName)
 		for i := 0; i < len(fieldTypes); i++ {
 			createQueryString += fmt.Sprintf("%s %s, ", newFirstLine[i], fieldTypes[i])
