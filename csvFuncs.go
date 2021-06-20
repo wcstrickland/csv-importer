@@ -112,6 +112,7 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 				psqlInfo += fmt.Sprint(v, " ")
 			}
 		}
+		psqlInfo += fmt.Sprint(" sslmode=disable")
 		db, err = sql.Open("postgres", psqlInfo)
 		return db, err
 	case "MySQL":
@@ -120,7 +121,6 @@ func connectToDBtype(dbtype string) (*sql.DB, error) {
 		db, err = sql.Open("mysql", mysqlInfo)
 		return db, err
 	case "SQLite":
-		//var sqliteFileName string
 		sqliteFileName := ""
 		fmt.Println("\nwhat SQLite file do you want to use?")
 		fmt.Println("If your file is outside of this directory Please provide an absolute path to the file:\n")
