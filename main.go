@@ -54,6 +54,8 @@ var dbTypeChoices = map[string]map[int]string{
 }
 
 func main() {
+	//	useCmdLineDB := flag.Bool("db", false, "select database type at cmd line")
+	//cmdLineDB := flag.String("type", "", "selected database type")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
 	flag.Parse()
 
