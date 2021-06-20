@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	host, port, user, password, dbname string
-	db                                 *sql.DB
-	err                                error
+	dbType, host, port, user, password, dbname string
+	db                                         *sql.DB
+	err                                        error
 )
 
 // DONT CHANGE THESE! EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
@@ -55,6 +55,22 @@ var dbTypeChoices = map[string]map[int]string{
 }
 
 func main() {
+	defaultDbType := flag.String("db", "", "default database setting")
+	isValidDefault := false
+	for _, v := range validDBChoices {
+		if *defaultDbType == v { //TODO account for case differences
+			isValidDefault = true
+			break
+		}
+		if *defaultDbType == "" {
+			isValidDefault = true
+			break
+		}
+	}
+	if !isValidDefault {
+		log.Fatalln("invalid default database type")
+	}
+	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
 	flag.Parse()
 
@@ -77,13 +93,21 @@ func main() {
 		r := csv.NewReader(f)
 
 		//GET DB TYPE
-		dbType := getUserChoice("database", validDBChoices)
-		if !*quietFlag {
-			fmt.Println("\nyour database type is:", dbType)
+		if *defaultDbType == "" {
+			dbType := getUserChoice("database", validDBChoices)
+			if !*quietFlag {
+				fmt.Println("\nyour database type is:", dbType)
+			}
+		} else {
+			dbType = *defaultDbType
 		}
 
 		// CONNECTTODBTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
-		db, err := connectToDBtype(dbType)
+		if *defaultDbType == "" {
+			db, err = connectToDBtype(dbType)
+		} else {
+			db, err = sql.Open(*defaultDbType, *dbConnString)
+		}
 		if err != nil {
 			fmt.Println("error:", err)
 			panic(err)

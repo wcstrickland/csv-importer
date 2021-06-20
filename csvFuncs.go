@@ -93,8 +93,8 @@ func getSqlInfo() (string, string, string, string, string) {
 
 // connectToDBtype takes a string representing a type of db and returns a *sql.DB and an error
 // the function handles returning a db connection for multiple db types
-func connectToDBtype(dbtype string) (*sql.DB, error) {
-	switch dbtype {
+func connectToDBtype(dbType string) (*sql.DB, error) {
+	switch dbType {
 	case "Postgres":
 		db, err := connectPostgres()
 		return db, err
