@@ -23,9 +23,9 @@ var (
 
 // DONT CHANGE THESE! EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
 var validDBChoices = map[int]string{
-	1: "MySQL",
-	2: "Postgres",
-	3: "SQLite",
+	1: "mysql",
+	2: "postgres",
+	3: "sqlite",
 }
 
 var validMysqlChoices = map[int]string{
@@ -49,28 +49,15 @@ var validSqliteChoices = map[int]string{
 	3: "REAL",
 }
 var dbTypeChoices = map[string]map[int]string{
-	"MySql":    validMysqlChoices,
-	"Postgres": validPostgresChoices,
-	"SQLite":   validSqliteChoices,
+	"mysql":    validMysqlChoices,
+	"postgres": validPostgresChoices,
+	"sqlite":   validSqliteChoices,
 }
 
 func main() {
-	defaultDbType := flag.String("db", "", "default database setting")
-	isValidDefault := false
-	for _, v := range validDBChoices {
-		if *defaultDbType == v { //TODO account for case differences
-			isValidDefault = true
-			break
-		}
-		if *defaultDbType == "" {
-			isValidDefault = true
-			break
-		}
-	}
-	if !isValidDefault {
-		log.Fatalln("invalid default database type")
-	}
-	dbConnString := flag.String("c", "", "URI/DSN")
+	useCmdLineDB := flag.Bool("db", false, "select database type at cmd line")
+	cmdLineDB := flag.String("t", "", "selected database type")
+	//dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
 	flag.Parse()
 
@@ -93,21 +80,18 @@ func main() {
 		r := csv.NewReader(f)
 
 		//GET DB TYPE
-		if *defaultDbType == "" {
-			dbType := getUserChoice("database", validDBChoices)
+		if !*useCmdLineDB {
+			dbType = getUserChoice("database", validDBChoices)
 			if !*quietFlag {
 				fmt.Println("\nyour database type is:", dbType)
 			}
 		} else {
-			dbType = *defaultDbType
+			dbType = fmt.Sprint(*cmdLineDB)
 		}
+		fmt.Println(dbType)
 
 		// CONNECTTODBTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
-		if *defaultDbType == "" {
-			db, err = connectToDBtype(dbType)
-		} else {
-			db, err = sql.Open(*defaultDbType, *dbConnString)
-		}
+		db, err = connectToDBtype(dbType)
 		if err != nil {
 			fmt.Println("error:", err)
 			panic(err)
