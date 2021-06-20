@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	dbType, host, port, user, password, dbname string
-	db                                         *sql.DB
-	err                                        error
+	sslMode, dbType, host, port, user, password, dbname string
+	db                                                  *sql.DB
+	err                                                 error
 )
 
 // DONT CHANGE THESE! EVEN THE CASE. THEY ARE KEYS IN THE CONNECT TO DB FUNCTION.
@@ -55,11 +55,22 @@ var dbTypeChoices = map[string]map[int]string{
 }
 
 func main() {
-	useCmdLineDB := flag.Bool("db", false, "select database type at cmd line")
-	cmdLineDB := flag.String("t", "", "selected database type") // TODO validate this
+	cmdLineDB := flag.String("t", "", "selected database type")
 	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
 	flag.Parse()
+	// validate that db type specified via command line is valid or blank
+	isValidDBType := false
+	for _, v := range validDBChoices {
+		if *cmdLineDB == v || *cmdLineDB == "" {
+			isValidDBType = true
+			break
+		}
+	}
+	if !isValidDBType {
+		fmt.Println("invalid database type. The valid types are", validDBChoices)
+		log.Fatalln()
+	}
 
 	// LOOP OVER ALL COMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
 	for _, v := range os.Args[1:] {
@@ -80,7 +91,7 @@ func main() {
 		r := csv.NewReader(f)
 
 		//GET DB TYPE
-		if !*useCmdLineDB {
+		if *cmdLineDB == "" {
 			dbType = getUserChoice("database", validDBChoices)
 			if !*quietFlag {
 				fmt.Println("\nyour database type is:", dbType)
@@ -88,10 +99,9 @@ func main() {
 		} else {
 			dbType = fmt.Sprint(*cmdLineDB)
 		}
-		fmt.Println(dbType)
 
 		// CONNECTTODBTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
-		if !*useCmdLineDB {
+		if *dbConnString == "" {
 			db, err = connectToDBtype(dbType)
 		} else {
 			db, err = sql.Open(dbType, *dbConnString)

@@ -77,7 +77,7 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 }
 
 // getSqlInfo takes no arguments and returns a set of strings and ints used to construct a db driver string
-func getSqlInfo() (string, string, string, string, string) {
+func getSqlInfo() (string, string, string, string, string, string) {
 	fmt.Println("\nPlease enter host")
 	fmt.Scanln(&host)
 	fmt.Println("\nPlease enter port")
@@ -88,7 +88,9 @@ func getSqlInfo() (string, string, string, string, string) {
 	fmt.Scanln(&password)
 	fmt.Println("\nPlease enter dbname")
 	fmt.Scanln(&dbname)
-	return host, user, password, dbname, port
+	fmt.Println("\nSSL mode?(enable or disable)")
+	fmt.Scanln(&sslMode)
+	return host, user, password, dbname, port, sslMode
 }
 
 // connectToDBtype takes a string representing a type of db and returns a *sql.DB and an error
@@ -129,13 +131,14 @@ func connectSqlite() (*sql.DB, error) {
 }
 
 func connectPostgres() (*sql.DB, error) {
-	host, user, password, dbname, port := getSqlInfo()
+	host, user, password, dbname, port, sslMode := getSqlInfo()
 	psqlInfoMap := map[string]string{
 		"host":     fmt.Sprintf("host=%s", host),
 		"user":     fmt.Sprintf("user=%s", user),
 		"password": fmt.Sprintf("password=%s", password),
 		"dbname":   fmt.Sprintf("dbname=%s", dbname),
 		"port":     fmt.Sprintf("port=%s", port),
+		"sslmode":  fmt.Sprintf("sslmode=%s", sslMode),
 	}
 	psqlInfo := ""
 	for _, v := range psqlInfoMap {
@@ -144,13 +147,12 @@ func connectPostgres() (*sql.DB, error) {
 			psqlInfo += fmt.Sprint(v, " ")
 		}
 	}
-	psqlInfo += fmt.Sprint(" sslmode=disable")
 	db, err = sql.Open("postgres", psqlInfo)
 	return db, err
 }
 
 func connectMysql() (*sql.DB, error) {
-	host, user, password, dbname, _ := getSqlInfo()
+	host, user, password, dbname, _, _ := getSqlInfo()
 	mysqlInfo := fmt.Sprintf("%s:%s@(%s)/%s", user, password, host, dbname)
 	db, err = sql.Open("mysql", mysqlInfo)
 	return db, err
