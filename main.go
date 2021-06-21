@@ -8,6 +8,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
+	"io"
 	"log"
 	_ "modernc.org/sqlite"
 	"os"
@@ -136,7 +137,7 @@ func main() {
 			fmt.Println("error:", err)
 		}
 
-		// sANITIZE FIELD NAMES
+		// SANITIZE FIELD NAMES
 		var newFirstLine []string
 		for _, fd := range firstLine {
 			newFirstLine = append(newFirstLine, sanitize(fd))
@@ -152,10 +153,35 @@ func main() {
 			fmt.Println(fieldTypes)
 		}
 
+		start := time.Now()
+
 		// CREATE THE TABLE
 		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
 		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
+		}
+		fmt.Println(createTableString)
+
+		// PREPARE INSERT STATEMENT
+		insertString := insertQueryString(tableName, newFirstLine)
+		insertStmt, err := db.Prepare(insertString)
+		if err != nil {
+			log.Fatalln("ERROR MALFORMED INSERT STATEMENT:", err)
+		}
+		defer insertStmt.Close()
+
+		fmt.Println(insertString)
+
+		// READ THE LINES OF THE CSV
+		for {
+			record, err := r.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				fmt.Println("error reading csv file:", err)
+			}
+			fmt.Println(record)
 		}
 		// read lines temporarily using a loop to work with smaller numbers of lines
 		//		for i := 0; i < 1; i++ {
@@ -173,5 +199,7 @@ func main() {
 		//				fmt.Println(row) // this `row` is []interface{} ready for insertion
 		//			}
 		//		}
+		stop := time.Since(start)
+		fmt.Println(stop)
 	}
 }

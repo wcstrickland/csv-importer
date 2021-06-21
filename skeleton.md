@@ -38,6 +38,6 @@
 - [ ] return number of rows affected
 
 ## end
-- [ ] time the process  
+- [x] time the process  
 - [ ] give success/ failure message  
 - [ ] provide link to db table  

@@ -177,11 +177,26 @@ func createTable(db *sql.DB, query string) error {
 		fmt.Println("error:", err)
 		return err
 	}
-	rows, err := res.RowsAffected()
+	_, err = res.RowsAffected()
 	if err != nil {
 		fmt.Println("error:", err)
 		return err
 	}
-	fmt.Println(rows, "affected when creating table")
+	fmt.Println("TABLE CREATED SUCCESSFULLY")
 	return nil
+}
+
+func insertQueryString(tableName string, newFirstLine []string) string {
+	insertQueryString := fmt.Sprintf("INSERT INTO %s(", tableName)
+	for i := 0; i < len(newFirstLine); i++ {
+		insertQueryString += fmt.Sprintf("%s, ", newFirstLine[i])
+	}
+	insertQueryString = strings.TrimSuffix(insertQueryString, ", ")
+	insertQueryString += ") VALUES ("
+	for i := 0; i < len(newFirstLine); i++ {
+		insertQueryString += "?, "
+	}
+	insertQueryString = strings.TrimSuffix(insertQueryString, ", ")
+	insertQueryString += ")"
+	return insertQueryString
 }
