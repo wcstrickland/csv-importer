@@ -200,3 +200,14 @@ func insertQueryString(tableName string, newFirstLine []string) string {
 	insertQueryString += ")"
 	return insertQueryString
 }
+
+func insertRow(stmt *sql.Stmt, row []string) (sql.Result, error) {
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancelfunc()
+	convertedRow := make([]interface{}, len(row))
+	for i, v := range row {
+		convertedRow[i] = v
+	}
+	result, err := stmt.ExecContext(ctx, convertedRow...)
+	return result, err
+}

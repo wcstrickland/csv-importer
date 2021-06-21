@@ -20,6 +20,7 @@ var (
 	sslMode, dbType, host, port, user, password, dbname string
 	db                                                  *sql.DB
 	err                                                 error
+	csvLines                                            int
 )
 
 var validDBChoices = map[int]string{
@@ -160,7 +161,6 @@ func main() {
 		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
 		}
-		fmt.Println(createTableString)
 
 		// PREPARE INSERT STATEMENT
 		insertString := insertQueryString(tableName, newFirstLine)
@@ -170,10 +170,9 @@ func main() {
 		}
 		defer insertStmt.Close()
 
-		fmt.Println(insertString)
-
 		// READ THE LINES OF THE CSV
 		for {
+			csvLines += 1
 			record, err := r.Read()
 			if err == io.EOF {
 				break
@@ -182,23 +181,11 @@ func main() {
 				fmt.Println("error reading csv file:", err)
 			}
 			fmt.Println(record)
+			_, err = insertRow(insertStmt, record)
+			if err != nil {
+				fmt.Println("ERROR SOMETHING WENT WRONG INSERTING ROW:", err)
+			}
 		}
-		// read lines temporarily using a loop to work with smaller numbers of lines
-		//		for i := 0; i < 1; i++ {
-		//			record, err := r.Read()
-		//			if err != nil {
-		//				fmt.Println("error:", err)
-		//			}
-		// range over an record to access colums
-		//			var row []interface{}
-		//			for i, col := range record {
-		//				c := parseValueByChoice(fieldTypes[i], col)
-		//				row = append(row, c)
-		//			}
-		//			if !*quietFlag {
-		//				fmt.Println(row) // this `row` is []interface{} ready for insertion
-		//			}
-		//		}
 		stop := time.Since(start)
 		fmt.Println(stop)
 	}
