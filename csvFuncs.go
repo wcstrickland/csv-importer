@@ -201,6 +201,29 @@ func insertQueryString(tableName string, newFirstLine []string) string {
 	return insertQueryString
 }
 
+func injectQueryString(tableName string, newFirstLine, curLine []string) string {
+	xs := make([]string, 5)
+	str := fmt.Sprintf("INSERT INTO %s(", tableName)
+	xs[0] = str
+	var cols strings.Builder
+	for _, v := range newFirstLine {
+		fmt.Fprintf(&cols, "%s, ", v)
+	}
+	str2 := cols.String()
+	str2 = str2[:cols.Len()-2]
+	xs[1] = str2
+	xs[2] = ") VALUES ("
+	var vals strings.Builder
+	for _, v := range curLine {
+		fmt.Fprintf(&vals, "%s, ", v)
+	}
+	str4 := vals.String()
+	str4 = str4[:vals.Len()-2]
+	xs[3] = str4
+	xs[4] = ")"
+	return strings.Join(xs, " ")
+}
+
 func insertRow(stmt *sql.Stmt, row []string) (sql.Result, error) {
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancelfunc()
