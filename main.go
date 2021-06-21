@@ -172,7 +172,6 @@ func main() {
 
 		// READ THE LINES OF THE CSV
 		for {
-			csvLines += 1
 			record, err := r.Read()
 			if err == io.EOF {
 				break
@@ -180,7 +179,6 @@ func main() {
 			if err != nil {
 				fmt.Println("error reading csv file:", err)
 			}
-			fmt.Println(record)
 			_, err = insertRow(insertStmt, record)
 			if err != nil {
 				fmt.Println("ERROR SOMETHING WENT WRONG INSERTING ROW:", err)
