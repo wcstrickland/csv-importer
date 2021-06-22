@@ -12,7 +12,6 @@ import (
 	"log"
 	_ "modernc.org/sqlite"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +22,7 @@ var (
 	db                                                  *sql.DB
 	err                                                 error
 	csvLines                                            int
+	wg                                                  sync.WaitGroup
 )
 
 var validDBChoices = map[int]string{
@@ -77,10 +77,6 @@ func main() {
 
 	// LOOP OVER ALL COMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
 	for _, v := range os.Args[1:] {
-		var wg sync.WaitGroup
-		jobs := make(chan []string)
-		results := make(chan int)
-		ers := make(chan string)
 		if strings.HasPrefix(v, "-") {
 			continue
 		}
@@ -96,6 +92,9 @@ func main() {
 		fmt.Println("\nThe currently selected file is:", v)
 		// make a csv Reader from the file
 		r := csv.NewReader(f)
+
+		// chan and wg
+		jobs := make(chan []string)
 
 		//GET DB TYPE
 		if *cmdLineDB == "" {
@@ -156,9 +155,6 @@ func main() {
 			userChoice := getUserChoice(col, dbTypeChoices[dbType])
 			fieldTypes = append(fieldTypes, userChoice)
 		}
-		if !*quietFlag {
-			fmt.Println(fieldTypes)
-		}
 
 		start := time.Now()
 
@@ -171,11 +167,10 @@ func main() {
 		query := qString(tableName, newFirstLine)
 
 		// READ THE LINES OF THE CSV
-		for i := 0; i < runtime.NumCPU()-1; i++ {
-			go func() {
-				insertWorker(db, query, jobs, ers, results)
-			}()
-		}
+
+		wg.Add(1)
+		go insertWorker(db, query, jobs)
+
 		for {
 			record, err := r.Read()
 			if err == io.EOF {
@@ -190,24 +185,16 @@ func main() {
 			//				fmt.Println("error:", err)
 			//			}
 		}
+		close(jobs)
+		wg.Wait()
 		stop := time.Since(start)
 		fmt.Println(stop)
 	}
 }
 
-func insertWorker(db *sql.DB, query string, jobs <-chan []string, ers chan<- string, results chan<- int) {
-	select {
-	case job := <-jobs:
-		_, err := insertRow(db, query, job)
-		if err != nil {
-			er := fmt.Sprintf("Error inserting %v: %v", job, err)
-			ers <- er
-		} else {
-			results <- 1
-		}
-	default:
-	}
-	//	for job := range jobs {
+func insertWorker(db *sql.DB, query string, jobs <-chan []string) {
+	//	select {
+	//	case job := <-jobs:
 	//		_, err := insertRow(db, query, job)
 	//		if err != nil {
 	//			er := fmt.Sprintf("Error inserting %v: %v", job, err)
@@ -215,5 +202,13 @@ func insertWorker(db *sql.DB, query string, jobs <-chan []string, ers chan<- str
 	//		} else {
 	//			results <- 1
 	//		}
+	//	default:
 	//	}
+	for job := range jobs {
+		_, err := insertRow(db, query, job)
+		if err != nil {
+			fmt.Println("error", err)
+		}
+	}
+	wg.Done()
 }
