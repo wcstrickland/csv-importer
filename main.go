@@ -162,14 +162,7 @@ func main() {
 			fmt.Println("error", err)
 		}
 
-		// PREPARE INSERT STATEMENT
-		//		insertString := insertQueryString(tableName, newFirstLine)
-		//		insertStmt, err := db.Prepare(insertString)
-		//		if err != nil {
-		//			log.Fatalln("ERROR MALFORMED INSERT STATEMENT:", err)
-		//		}
-		//		defer insertStmt.Close()
-
+		queryPrefix := queryStringPrefix(tableName, newFirstLine)
 		// READ THE LINES OF THE CSV
 		for {
 			record, err := r.Read()
@@ -179,13 +172,10 @@ func main() {
 			if err != nil {
 				fmt.Println("error reading csv file:", err)
 			}
-			fmt.Println(record)
-			lineString := injectQueryString(tableName, newFirstLine, record)
-			fmt.Println(lineString)
-			//			_, err = insertRow(insertStmt, record)
-			//			if err != nil {
-			//				fmt.Println("ERROR SOMETHING WENT WRONG INSERTING ROW:", err)
-			//			}
+			_, err = insertRow(db, queryPrefix, record)
+			if err != nil {
+				fmt.Println("error:", err)
+			}
 		}
 		stop := time.Since(start)
 		fmt.Println(stop)

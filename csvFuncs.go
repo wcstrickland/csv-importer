@@ -201,8 +201,19 @@ func insertQueryString(tableName string, newFirstLine []string) string {
 	return insertQueryString
 }
 
-func injectQueryString(tableName string, newFirstLine, curLine []string) string {
-	xs := make([]string, 5)
+func insertRowSafely(stmt *sql.Stmt, row []string) (sql.Result, error) {
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancelfunc()
+	convertedRow := make([]interface{}, len(row))
+	for i, v := range row {
+		convertedRow[i] = v
+	}
+	result, err := stmt.ExecContext(ctx, convertedRow...)
+	return result, err
+}
+
+func queryStringPrefix(tableName string, newFirstLine []string) string {
+	xs := make([]string, 3)
 	str := fmt.Sprintf("INSERT INTO %s(", tableName)
 	xs[0] = str
 	var cols strings.Builder
@@ -213,24 +224,32 @@ func injectQueryString(tableName string, newFirstLine, curLine []string) string 
 	str2 = str2[:cols.Len()-2]
 	xs[1] = str2
 	xs[2] = ") VALUES ("
-	var vals strings.Builder
-	for _, v := range curLine {
-		fmt.Fprintf(&vals, "%s, ", v)
-	}
-	str4 := vals.String()
-	str4 = str4[:vals.Len()-2]
-	xs[3] = str4
-	xs[4] = ")"
 	return strings.Join(xs, " ")
 }
 
-func insertRow(stmt *sql.Stmt, row []string) (sql.Result, error) {
+func injectQueryString(queryPrefix string, curLine []string) string {
+	xs := make([]string, 3)
+	var vals strings.Builder
+	for _, v := range curLine {
+		fmt.Fprintf(&vals, "'%s', ", v)
+	}
+	str1 := vals.String()
+	str1 = str1[:vals.Len()-2]
+	xs[0] = queryPrefix
+	xs[1] = str1
+	xs[2] = ")"
+	return strings.Join(xs, " ")
+}
+
+func insertRow(db *sql.DB, queryPrefix string, record []string) (sql.Result, error) {
+	query := injectQueryString(queryPrefix, record)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancelfunc()
-	convertedRow := make([]interface{}, len(row))
-	for i, v := range row {
-		convertedRow[i] = v
+	var throwAway []interface{}
+	result, err := db.ExecContext(ctx, query, throwAway...)
+	if err != nil {
+		fmt.Println("error:", err)
+		panic(err)
 	}
-	result, err := stmt.ExecContext(ctx, convertedRow...)
 	return result, err
 }
