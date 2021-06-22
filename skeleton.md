@@ -7,10 +7,10 @@
 - [x] flags?
 
 ## ask for info to connect to DB
-- [ ] uri?
-- [ ] dsn?  
+- [x] uri?
+- [x] dsn?  
 - [x] postgres  
-- [ ] mysql  
+- [x] mysql  
 - [x] sqlite3  
 
 ## ask for table name
@@ -29,7 +29,7 @@
 
 ## loop over remaining lines
 - [x] range over each record  
-- [ ] create prepared statement for insertion
+- [x] create prepared statement for insertion
 - [ ] send each row onto a job channel  
 - [ ] have workers pull jobs
 - [ ] have workers send a result onto a results channel

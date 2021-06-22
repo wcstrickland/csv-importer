@@ -12,6 +12,7 @@ import (
 	"log"
 	_ "modernc.org/sqlite"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -21,6 +22,9 @@ var (
 	db                                                  *sql.DB
 	err                                                 error
 	csvLines                                            int
+	jobs                                                chan []string
+	results                                             chan int
+	errors                                              chan string
 )
 
 var validDBChoices = map[int]string{
@@ -163,7 +167,11 @@ func main() {
 		}
 
 		query := qString(tableName, newFirstLine)
+
 		// READ THE LINES OF THE CSV
+		for i := 0; i < runtime.NumCPU(); i++ {
+			go insertWorker(db, query, jobs, errors, results)
+		}
 		for {
 			record, err := r.Read()
 			if err == io.EOF {
@@ -172,12 +180,26 @@ func main() {
 			if err != nil {
 				fmt.Println("error reading csv file:", err)
 			}
-			_, err = insertRow(db, query, record)
-			if err != nil {
-				fmt.Println("error:", err)
-			}
+			jobs <- record
+			//			_, err = insertRow(db, query, record)
+			//			if err != nil {
+			//				fmt.Println("error:", err)
+			//			}
 		}
+		close(jobs)
 		stop := time.Since(start)
 		fmt.Println(stop)
+	}
+}
+
+func insertWorker(db *sql.DB, query string, jobs <-chan []string, errors chan<- string, results chan<- int) {
+	for job := range jobs {
+		_, err := insertRow(db, query, job)
+		if err != nil {
+			er := fmt.Sprintf("Error inserting %v: %v", job, err)
+			errors <- er
+		} else {
+			results <- 1
+		}
 	}
 }
