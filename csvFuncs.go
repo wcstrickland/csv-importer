@@ -210,18 +210,3 @@ func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
 	}
 	return result, err
 }
-
-// unsafe query subject to sql injection
-//func injectQueryString(queryPrefix string, curLine []string) string {
-//	xs := make([]string, 3)
-//	var vals strings.Builder
-//	for _, v := range curLine {
-//		fmt.Fprintf(&vals, "'%s', ", v)
-//	}
-//	str1 := vals.String()
-//	str1 = str1[:vals.Len()-2]
-//	xs[0] = queryPrefix
-//	xs[1] = str1
-//	xs[2] = ")"
-//	return strings.Join(xs, " ")
-//}

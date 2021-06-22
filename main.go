@@ -49,7 +49,7 @@ var validPostgresChoices = map[int]string{
 var validSqliteChoices = map[int]string{
 	1: "TEXT",
 	2: "INTEGER",
-	3: "REAL",
+	3: "DECIMAL",
 }
 var dbTypeChoices = map[string]map[int]string{
 	"mysql":    validMysqlChoices,
@@ -168,8 +168,20 @@ func main() {
 
 		// READ THE LINES OF THE CSV
 
-		wg.Add(1)
-		go insertWorker(db, query, jobs)
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go insertWorker(db, query, jobs)
+		}
+		//		wg.Add(1)
+		//		go insertWorker(db, query, jobs)
+		//		wg.Add(1)
+		//		go insertWorker(db, query, jobs)
+		//		wg.Add(1)
+		//		go insertWorker(db, query, jobs)
+		//		wg.Add(1)
+		//		go insertWorker(db, query, jobs)
+		//		wg.Add(1)
+		//		go insertWorker(db, query, jobs)
 
 		for {
 			record, err := r.Read()
@@ -180,10 +192,6 @@ func main() {
 				fmt.Println("error reading csv file:", err)
 			}
 			jobs <- record
-			//			_, err = insertRow(db, query, record)
-			//			if err != nil {
-			//				fmt.Println("error:", err)
-			//			}
 		}
 		close(jobs)
 		wg.Wait()
@@ -193,17 +201,6 @@ func main() {
 }
 
 func insertWorker(db *sql.DB, query string, jobs <-chan []string) {
-	//	select {
-	//	case job := <-jobs:
-	//		_, err := insertRow(db, query, job)
-	//		if err != nil {
-	//			er := fmt.Sprintf("Error inserting %v: %v", job, err)
-	//			ers <- er
-	//		} else {
-	//			results <- 1
-	//		}
-	//	default:
-	//	}
 	for job := range jobs {
 		_, err := insertRow(db, query, job)
 		if err != nil {
