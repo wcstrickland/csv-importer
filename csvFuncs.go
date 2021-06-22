@@ -186,70 +186,42 @@ func createTable(db *sql.DB, query string) error {
 	return nil
 }
 
-func insertQueryString(tableName string, newFirstLine []string) string {
-	insertQueryString := fmt.Sprintf("INSERT INTO %s(", tableName)
-	for i := 0; i < len(newFirstLine); i++ {
-		insertQueryString += fmt.Sprintf("%s, ", newFirstLine[i])
-	}
-	insertQueryString = strings.TrimSuffix(insertQueryString, ", ")
-	insertQueryString += ") VALUES ("
-	for i := 0; i < len(newFirstLine); i++ {
-		insertQueryString += "?, "
-	}
-	insertQueryString = strings.TrimSuffix(insertQueryString, ", ")
-	insertQueryString += ")"
-	return insertQueryString
+func qString(tableName string, newFirstLine []string) string {
+	xs := make([]string, 4)
+	xs[0] = fmt.Sprintf("INSERT INTO %s ", tableName)
+	xs[1] = "VALUES ("
+	ph := strings.Repeat("?, ", len(newFirstLine))
+	xs[2] = strings.TrimSuffix(ph, ", ")
+	xs[3] = ")"
+	return strings.Join(xs, " ")
 }
 
-func insertRowSafely(stmt *sql.Stmt, row []string) (sql.Result, error) {
+func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancelfunc()
-	convertedRow := make([]interface{}, len(row))
-	for i, v := range row {
+	convertedRow := make([]interface{}, len(record))
+	for i, v := range record {
 		convertedRow[i] = v
 	}
-	result, err := stmt.ExecContext(ctx, convertedRow...)
-	return result, err
-}
-
-func queryStringPrefix(tableName string, newFirstLine []string) string {
-	xs := make([]string, 3)
-	str := fmt.Sprintf("INSERT INTO %s(", tableName)
-	xs[0] = str
-	var cols strings.Builder
-	for _, v := range newFirstLine {
-		fmt.Fprintf(&cols, "%s, ", v)
-	}
-	str2 := cols.String()
-	str2 = str2[:cols.Len()-2]
-	xs[1] = str2
-	xs[2] = ") VALUES ("
-	return strings.Join(xs, " ")
-}
-
-func injectQueryString(queryPrefix string, curLine []string) string {
-	xs := make([]string, 3)
-	var vals strings.Builder
-	for _, v := range curLine {
-		fmt.Fprintf(&vals, "'%s', ", v)
-	}
-	str1 := vals.String()
-	str1 = str1[:vals.Len()-2]
-	xs[0] = queryPrefix
-	xs[1] = str1
-	xs[2] = ")"
-	return strings.Join(xs, " ")
-}
-
-func insertRow(db *sql.DB, queryPrefix string, record []string) (sql.Result, error) {
-	query := injectQueryString(queryPrefix, record)
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
-	defer cancelfunc()
-	var throwAway []interface{}
-	result, err := db.ExecContext(ctx, query, throwAway...)
+	result, err := db.ExecContext(ctx, query, convertedRow...)
 	if err != nil {
 		fmt.Println("error:", err)
 		panic(err)
 	}
 	return result, err
 }
+
+// unsafe query subject to sql injection
+//func injectQueryString(queryPrefix string, curLine []string) string {
+//	xs := make([]string, 3)
+//	var vals strings.Builder
+//	for _, v := range curLine {
+//		fmt.Fprintf(&vals, "'%s', ", v)
+//	}
+//	str1 := vals.String()
+//	str1 = str1[:vals.Len()-2]
+//	xs[0] = queryPrefix
+//	xs[1] = str1
+//	xs[2] = ")"
+//	return strings.Join(xs, " ")
+//}

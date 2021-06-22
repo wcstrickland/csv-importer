@@ -162,7 +162,7 @@ func main() {
 			fmt.Println("error", err)
 		}
 
-		queryPrefix := queryStringPrefix(tableName, newFirstLine)
+		query := qString(tableName, newFirstLine)
 		// READ THE LINES OF THE CSV
 		for {
 			record, err := r.Read()
@@ -172,7 +172,7 @@ func main() {
 			if err != nil {
 				fmt.Println("error reading csv file:", err)
 			}
-			_, err = insertRow(db, queryPrefix, record)
+			_, err = insertRow(db, query, record)
 			if err != nil {
 				fmt.Println("error:", err)
 			}
