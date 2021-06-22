@@ -38,6 +38,12 @@
 - [ ] return number of rows affected
 
 ## end
-- [ ] time the process  
+- [x] time the process  
 - [ ] give success/ failure message  
 - [ ] provide link to db table  
+
+## brick wall
+all insertion methods in standard library take a []interfac{} as the parameters.  
+there is no feasible way to convert a row([]string) to []interface{} without adding n=columns itteration to every row
+maybe 3rd party orm?
+

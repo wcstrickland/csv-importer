@@ -177,11 +177,51 @@ func createTable(db *sql.DB, query string) error {
 		fmt.Println("error:", err)
 		return err
 	}
-	rows, err := res.RowsAffected()
+	_, err = res.RowsAffected()
 	if err != nil {
 		fmt.Println("error:", err)
 		return err
 	}
-	fmt.Println(rows, "affected when creating table")
+	fmt.Println("TABLE CREATED SUCCESSFULLY")
 	return nil
 }
+
+func qString(tableName string, newFirstLine []string) string {
+	xs := make([]string, 4)
+	xs[0] = fmt.Sprintf("INSERT INTO %s ", tableName)
+	xs[1] = "VALUES ("
+	ph := strings.Repeat("?, ", len(newFirstLine))
+	xs[2] = strings.TrimSuffix(ph, ", ")
+	xs[3] = ")"
+	return strings.Join(xs, " ")
+}
+
+func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancelfunc()
+	convertedRow := make([]interface{}, len(record))
+	for i, v := range record {
+		convertedRow[i] = v
+	}
+	result, err := db.ExecContext(ctx, query, convertedRow...)
+	if err != nil {
+		fmt.Println("error:", err)
+		panic(err)
+	}
+	return result, err
+}
+
+// unsafe query subject to sql injection
+//func injectQueryString(queryPrefix string, curLine []string) string {
+//	xs := make([]string, 3)
+//	var vals strings.Builder
+//	for _, v := range curLine {
+//		fmt.Fprintf(&vals, "'%s', ", v)
+//	}
+//	str1 := vals.String()
+//	str1 = str1[:vals.Len()-2]
+//	xs[0] = queryPrefix
+//	xs[1] = str1
+//	xs[2] = ")"
+//	return strings.Join(xs, " ")
+//}

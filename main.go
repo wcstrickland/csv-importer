@@ -8,6 +8,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
+	"io"
 	"log"
 	_ "modernc.org/sqlite"
 	"os"
@@ -19,6 +20,7 @@ var (
 	sslMode, dbType, host, port, user, password, dbname string
 	db                                                  *sql.DB
 	err                                                 error
+	csvLines                                            int
 )
 
 var validDBChoices = map[int]string{
@@ -136,7 +138,7 @@ func main() {
 			fmt.Println("error:", err)
 		}
 
-		// sANITIZE FIELD NAMES
+		// SANITIZE FIELD NAMES
 		var newFirstLine []string
 		for _, fd := range firstLine {
 			newFirstLine = append(newFirstLine, sanitize(fd))
@@ -152,26 +154,30 @@ func main() {
 			fmt.Println(fieldTypes)
 		}
 
+		start := time.Now()
+
 		// CREATE THE TABLE
 		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
 		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
 		}
-		// read lines temporarily using a loop to work with smaller numbers of lines
-		//		for i := 0; i < 1; i++ {
-		//			record, err := r.Read()
-		//			if err != nil {
-		//				fmt.Println("error:", err)
-		//			}
-		// range over an record to access colums
-		//			var row []interface{}
-		//			for i, col := range record {
-		//				c := parseValueByChoice(fieldTypes[i], col)
-		//				row = append(row, c)
-		//			}
-		//			if !*quietFlag {
-		//				fmt.Println(row) // this `row` is []interface{} ready for insertion
-		//			}
-		//		}
+
+		query := qString(tableName, newFirstLine)
+		// READ THE LINES OF THE CSV
+		for {
+			record, err := r.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				fmt.Println("error reading csv file:", err)
+			}
+			_, err = insertRow(db, query, record)
+			if err != nil {
+				fmt.Println("error:", err)
+			}
+		}
+		stop := time.Since(start)
+		fmt.Println(stop)
 	}
 }
