@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"context"
 	"database/sql"
 	"encoding/csv"
 	"flag"
@@ -58,6 +57,7 @@ var dbTypeChoices = map[string]map[int]string{
 }
 
 func main() {
+	// flag stuff
 	cmdLineDB := flag.String("t", "", "selected database type")
 	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
@@ -93,9 +93,6 @@ func main() {
 		// make a csv Reader from the file
 		r := csv.NewReader(f)
 
-		// chan and wg
-		jobs := make(chan []string)
-
 		//GET DB TYPE
 		if *cmdLineDB == "" {
 			dbType = getUserChoice("database", validDBChoices)
@@ -117,9 +114,8 @@ func main() {
 			panic(err)
 		}
 		db.SetConnMaxLifetime(time.Minute * 3)
-		db.SetMaxOpenConns(10)
-		db.SetMaxIdleConns(10)
-		defer db.Close()
+		db.SetMaxOpenConns(0)
+		db.SetMaxIdleConns(30)
 
 		// PING THE DB AND FATAL OUT IF THE CONNECTION IS NOT SUCCESSFUL
 		err = db.Ping()
@@ -156,32 +152,23 @@ func main() {
 			fieldTypes = append(fieldTypes, userChoice)
 		}
 
-		start := time.Now()
-
 		// CREATE THE TABLE
+		start := time.Now()
 		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
 		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
 		}
 
 		query := qString(tableName, newFirstLine)
+		// chan and wg
+		jobs := make(chan []string)
+
+		for i := 0; i < 900; i++ {
+			wg.Add(1)
+			go insertWorker(i, db, query, jobs)
+		}
 
 		// READ THE LINES OF THE CSV
-
-		for i := 0; i < 100; i++ {
-			wg.Add(1)
-			go insertWorker(db, query, jobs)
-		}
-		//		wg.Add(1)
-		//		go insertWorker(db, query, jobs)
-		//		wg.Add(1)
-		//		go insertWorker(db, query, jobs)
-		//		wg.Add(1)
-		//		go insertWorker(db, query, jobs)
-		//		wg.Add(1)
-		//		go insertWorker(db, query, jobs)
-		//		wg.Add(1)
-		//		go insertWorker(db, query, jobs)
 
 		for {
 			record, err := r.Read()
@@ -197,14 +184,19 @@ func main() {
 		wg.Wait()
 		stop := time.Since(start)
 		fmt.Println(stop)
+		defer db.Close()
 	}
 }
 
-func insertWorker(db *sql.DB, query string, jobs <-chan []string) {
+func insertWorker(id int, db *sql.DB, query string, jobs <-chan []string) {
 	for job := range jobs {
-		_, err := insertRow(db, query, job)
+		start := time.Now()
+		err := insert(db, query, job)
+		stop := time.Since(start)
+		fmt.Printf("worker %d inserted a job in %v\n", id, stop)
 		if err != nil {
-			fmt.Println("error", err)
+			fmt.Println("error at worker level", err)
+			panic(err)
 		}
 	}
 	wg.Done()

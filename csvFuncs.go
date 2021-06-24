@@ -210,3 +210,16 @@ func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
 	}
 	return result, err
 }
+
+func insert(db *sql.DB, query string, record []string) error {
+	convertedRow := make([]interface{}, len(record))
+	for i, v := range record {
+		convertedRow[i] = v
+	}
+	_, err := db.Exec(query, convertedRow...)
+	if err != nil {
+		fmt.Println("error executing insert function:", err)
+		panic(err)
+	}
+	return err
+}
