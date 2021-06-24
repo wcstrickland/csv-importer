@@ -7,6 +7,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
+	_ "github.com/mattn/go-sqlite3"
 	"io"
 	"log"
 	_ "modernc.org/sqlite"
