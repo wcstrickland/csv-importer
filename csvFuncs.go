@@ -126,7 +126,7 @@ func connectSqlite() (*sql.DB, error) {
 		}
 	}
 	liteDsn := fmt.Sprintf("file:%s", sqliteFileName)
-	db, err = sql.Open("sqlite", liteDsn)
+	db, err = sql.Open("sqlite3", liteDsn)
 	return db, err
 }
 

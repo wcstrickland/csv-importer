@@ -10,7 +10,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"io"
 	"log"
-	_ "modernc.org/sqlite"
+	//	_ "modernc.org/sqlite"
 	"os"
 	"strings"
 	"sync"
@@ -164,7 +164,7 @@ func main() {
 		// chan and wg
 		jobs := make(chan []string)
 
-		for i := 0; i < 900; i++ {
+		for i := 0; i < 1; i++ {
 			wg.Add(1)
 			go insertWorker(i, db, query, jobs)
 		}
