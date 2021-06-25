@@ -56,3 +56,9 @@ time was nominal
 
 meaning the bottleneck is in the connection to the database  
 perhaps changing to a driver that uses cgo will work
+
+It seems establishing a db con in go is slower than python
+but accessing the data is faster.
+does go support prepared statements with multiple insert values.
+
+https://stackoverflow.com/questions/48000940/faster-sqlite-3-query-in-go-i-need-to-process-1million-rows-as-fast-as-possibl/48043356
