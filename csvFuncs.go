@@ -188,11 +188,28 @@ func createTable(db *sql.DB, query string) error {
 
 func qString(tableName string, newFirstLine []string) string {
 	xs := make([]string, 4)
-	xs[0] = fmt.Sprintf("INSERT INTO %s ", tableName)
+	xs[0] = fmt.Sprintf("INSERT INTO %s", tableName)
 	xs[1] = "VALUES ("
 	ph := strings.Repeat("?, ", len(newFirstLine))
 	xs[2] = strings.TrimSuffix(ph, ", ")
 	xs[3] = ")"
+	return strings.Join(xs, " ")
+}
+
+func batchString(batchSize int, tableName string, newFirstLine []string) string {
+	phSlice := make([]string, batchSize)
+	xs := make([]string, 3)
+	xs[0] = fmt.Sprintf("INSERT INTO %s ", tableName)
+	xs[1] = "VALUES "
+	for i := 0; i < batchSize; i++ {
+		ph := "("
+		ph += strings.Repeat("?, ", len(newFirstLine))
+		ph = strings.TrimSuffix(ph, ", ")
+		ph += "),"
+		phSlice[i] = ph
+	}
+	phs := strings.Join(phSlice, " ")
+	xs[2] = strings.TrimSuffix(phs, ",")
 	return strings.Join(xs, " ")
 }
 

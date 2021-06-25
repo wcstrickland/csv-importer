@@ -19,6 +19,7 @@
 ## ask what type of DB 
 - [x] make connection based on selected DB type
 - [x] change field type options available based on user selected DB Type
+- [ ] create a flag value that assigns maximum number of open connections to accomodate restricted dbs
 
 ## loop over first line(headers)
 - [x] sterilize fields  
@@ -62,3 +63,7 @@ but accessing the data is faster.
 does go support prepared statements with multiple insert values.
 
 https://stackoverflow.com/questions/48000940/faster-sqlite-3-query-in-go-i-need-to-process-1million-rows-as-fast-as-possibl/48043356
+
+
+
+attempt to make fewer larger insert statements.
