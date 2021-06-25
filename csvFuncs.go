@@ -197,13 +197,11 @@ func qString(tableName string, newFirstLine []string) string {
 }
 
 func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
-	defer cancelfunc()
 	convertedRow := make([]interface{}, len(record))
 	for i, v := range record {
 		convertedRow[i] = v
 	}
-	result, err := db.ExecContext(ctx, query, convertedRow...)
+	result, err := db.Exec(query, convertedRow...)
 	if err != nil {
 		fmt.Println("error:", err)
 		panic(err)

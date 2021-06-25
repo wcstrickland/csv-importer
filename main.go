@@ -150,9 +150,6 @@ func main() {
 			userChoice := getUserChoice(col, dbTypeChoices[dbType])
 			fieldTypes = append(fieldTypes, userChoice)
 		}
-		if !*quietFlag {
-			fmt.Println(fieldTypes)
-		}
 
 		start := time.Now()
 
