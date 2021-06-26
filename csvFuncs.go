@@ -243,12 +243,12 @@ func insert(db *sql.DB, query string, record []string) error {
 	return err
 }
 
-func insertLines(db *sql.DB, tableName string, query string, lenRecord int, r *csv.Reader) {
+func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job) {
 	for {
 		vals := make([]interface{}, 1000*lenRecord)
 		_, err := r.Read()
 		if err == io.EOF {
-			break
+			return
 		}
 		for i := 0; i < 1000; i++ {
 			record, err := r.Read()
@@ -258,11 +258,11 @@ func insertLines(db *sql.DB, tableName string, query string, lenRecord int, r *c
 				}
 				vals = vals[:i*lenRecord]
 				query := batchString(i, tableName, lenRecord)
-				_, err := db.Exec(query, vals...)
-				if err != nil {
-					fmt.Println("error executing query:", err)
-					panic(err)
+				j := job{
+					query: query,
+					vals:  vals,
 				}
+				jobs <- j
 				return
 			}
 			if i == 0 {
@@ -273,13 +273,13 @@ func insertLines(db *sql.DB, tableName string, query string, lenRecord int, r *c
 				for j, v := range record {
 					vals[(lenRecord*i)+j] = v
 				}
-
 			}
 		}
-		_, err = db.Exec(query, vals...)
-		if err != nil {
-			fmt.Println("error executing query:", err)
-			panic(err)
+		query := batchString(1000, tableName, lenRecord)
+		j := job{
+			query: query,
+			vals:  vals,
 		}
+		jobs <- j
 	}
 }

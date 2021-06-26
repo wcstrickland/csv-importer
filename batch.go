@@ -11,7 +11,7 @@ import (
 	"log"
 	"os"
 	"strings"
-	//	"sync"
+	"sync"
 	"time"
 )
 
@@ -21,7 +21,7 @@ var (
 	err                                                 error
 	csvLines                                            int
 
-//	wg                                                  sync.WaitGroup
+	wg sync.WaitGroup
 )
 
 var validDBChoices = map[int]string{
@@ -159,10 +159,36 @@ func main() {
 			fmt.Println("error", err)
 		}
 
+		jobs := make(chan job)
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go insertWorker(i, db, jobs)
+		}
+
 		// READ THE LINES OF THE CSV
-		query := batchString(1000, tableName, lenRecord)
-		insertLines(db, tableName, query, lenRecord, r)
+		insertLines(db, tableName, lenRecord, r, jobs)
+		close(jobs)
+		wg.Wait()
 		stop := time.Since(start)
-		fmt.Println(stop)
+		fmt.Println("time taken: ", stop)
 	}
+}
+
+type job struct {
+	query string
+	vals  []interface{}
+}
+
+func insertWorker(id int, db *sql.DB, jobs <-chan job) {
+	for job := range jobs {
+		start := time.Now()
+		_, err = db.Exec(job.query, job.vals...)
+		if err != nil {
+			fmt.Println("error at worker level", err)
+			panic(err)
+		}
+		stop := time.Since(start)
+		fmt.Printf("worker %d inserted a job in %v\n", id, stop)
+	}
+	wg.Done()
 }
