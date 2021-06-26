@@ -8,10 +8,12 @@ import (
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
 	_ "github.com/mattn/go-sqlite3"
+	"io"
 	"log"
+	_ "modernc.org/sqlite"
 	"os"
 	"strings"
-	//	"sync"
+	"sync"
 	"time"
 )
 
@@ -20,8 +22,7 @@ var (
 	db                                                  *sql.DB
 	err                                                 error
 	csvLines                                            int
-
-//	wg                                                  sync.WaitGroup
+	wg                                                  sync.WaitGroup
 )
 
 var validDBChoices = map[int]string{
@@ -116,7 +117,6 @@ func main() {
 		db.SetConnMaxLifetime(time.Minute * 3)
 		db.SetMaxOpenConns(0)
 		db.SetMaxIdleConns(30)
-		defer db.Close()
 
 		// PING THE DB AND FATAL OUT IF THE CONNECTION IS NOT SUCCESSFUL
 		err = db.Ping()
@@ -136,12 +136,13 @@ func main() {
 
 		// READ FIRST LINE FOR HEADERS
 		firstLine, err := r.Read()
-		lenRecord := len(firstLine)
 		if err != nil {
-			fmt.Println("error reading CSV:", err)
+			fmt.Println("error:", err)
 		}
+
+		// SANITIZE FIELD NAMES
 		var newFirstLine []string
-		for _, fd := range firstLine { // sanitize headers
+		for _, fd := range firstLine {
 			newFirstLine = append(newFirstLine, sanitize(fd))
 		}
 
@@ -159,10 +160,45 @@ func main() {
 			fmt.Println("error", err)
 		}
 
+		query := qString(tableName, newFirstLine)
+		// chan and wg
+		jobs := make(chan []string)
+
+		for i := 0; i < 900; i++ {
+			wg.Add(1)
+			go insertWorker(i, db, query, jobs)
+		}
+
 		// READ THE LINES OF THE CSV
-		query := batchString(1000, tableName, lenRecord)
-		insertLines(db, tableName, query, lenRecord, r)
+
+		for {
+			record, err := r.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				fmt.Println("error reading csv file:", err)
+			}
+			jobs <- record
+		}
+		close(jobs)
+		wg.Wait()
 		stop := time.Since(start)
 		fmt.Println(stop)
+		defer db.Close()
 	}
+}
+
+func insertWorker(id int, db *sql.DB, query string, jobs <-chan []string) {
+	for job := range jobs {
+		start := time.Now()
+		err := insert(db, query, job)
+		stop := time.Since(start)
+		fmt.Printf("worker %d inserted a job in %v\n", id, stop)
+		if err != nil {
+			fmt.Println("error at worker level", err)
+			panic(err)
+		}
+	}
+	wg.Done()
 }

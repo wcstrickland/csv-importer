@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"sort"
@@ -196,14 +198,14 @@ func qString(tableName string, newFirstLine []string) string {
 	return strings.Join(xs, " ")
 }
 
-func batchString(batchSize int, tableName string, newFirstLine []string) string {
+func batchString(batchSize int, tableName string, lenRecord int) string {
 	phSlice := make([]string, batchSize)
 	xs := make([]string, 3)
 	xs[0] = fmt.Sprintf("INSERT INTO %s ", tableName)
 	xs[1] = "VALUES "
 	for i := 0; i < batchSize; i++ {
 		ph := "("
-		ph += strings.Repeat("?, ", len(newFirstLine))
+		ph += strings.Repeat("?, ", lenRecord)
 		ph = strings.TrimSuffix(ph, ", ")
 		ph += "),"
 		phSlice[i] = ph
@@ -239,4 +241,45 @@ func insert(db *sql.DB, query string, record []string) error {
 		panic(err)
 	}
 	return err
+}
+
+func insertLines(db *sql.DB, tableName string, query string, lenRecord int, r *csv.Reader) {
+	for {
+		vals := make([]interface{}, 1000*lenRecord)
+		_, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		for i := 0; i < 1000; i++ {
+			record, err := r.Read()
+			if err == io.EOF {
+				if i == 0 {
+					return
+				}
+				vals = vals[:i*lenRecord]
+				query := batchString(i, tableName, lenRecord)
+				_, err := db.Exec(query, vals...)
+				if err != nil {
+					fmt.Println("error executing query:", err)
+					panic(err)
+				}
+				return
+			}
+			if i == 0 {
+				for _, v := range record {
+					vals[i] = v
+				}
+			} else {
+				for j, v := range record {
+					vals[(lenRecord*i)+j] = v
+				}
+
+			}
+		}
+		_, err = db.Exec(query, vals...)
+		if err != nil {
+			fmt.Println("error executing query:", err)
+			panic(err)
+		}
+	}
 }
