@@ -188,16 +188,6 @@ func createTable(db *sql.DB, query string) error {
 	return nil
 }
 
-func qString(tableName string, newFirstLine []string) string {
-	xs := make([]string, 4)
-	xs[0] = fmt.Sprintf("INSERT INTO %s", tableName)
-	xs[1] = "VALUES ("
-	ph := strings.Repeat("?, ", len(newFirstLine))
-	xs[2] = strings.TrimSuffix(ph, ", ")
-	xs[3] = ")"
-	return strings.Join(xs, " ")
-}
-
 func batchString(batchSize int, tableName string, lenRecord int) string {
 	phSlice := make([]string, batchSize)
 	xs := make([]string, 3)
@@ -215,41 +205,9 @@ func batchString(batchSize int, tableName string, lenRecord int) string {
 	return strings.Join(xs, " ")
 }
 
-func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
-	defer cancelfunc()
-	convertedRow := make([]interface{}, len(record))
-	for i, v := range record {
-		convertedRow[i] = v
-	}
-	result, err := db.ExecContext(ctx, query, convertedRow...)
-	if err != nil {
-		fmt.Println("error:", err)
-		panic(err)
-	}
-	return result, err
-}
-
-func insert(db *sql.DB, query string, record []string) error {
-	convertedRow := make([]interface{}, len(record))
-	for i, v := range record {
-		convertedRow[i] = v
-	}
-	_, err := db.Exec(query, convertedRow...)
-	if err != nil {
-		fmt.Println("error executing insert function:", err)
-		panic(err)
-	}
-	return err
-}
-
-func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job) {
+func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
 	for {
 		vals := make([]interface{}, 1000*lenRecord)
-		_, err := r.Read()
-		if err == io.EOF {
-			return
-		}
 		for i := 0; i < 1000; i++ {
 			record, err := r.Read()
 			if err == io.EOF {
@@ -258,16 +216,19 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, job
 				}
 				vals = vals[:i*lenRecord]
 				query := batchString(i, tableName, lenRecord)
-				j := job{
-					query: query,
-					vals:  vals,
-				}
-				jobs <- j
+				wg.Add(1)
+				go func(db *sql.DB, query string, vals []interface{}) {
+					_, err = db.Exec(query, vals...)
+					if err != nil {
+						fmt.Println("error:", err)
+					}
+					wg.Done()
+				}(db, query, vals)
 				return
 			}
 			if i == 0 {
-				for _, v := range record {
-					vals[i] = v
+				for j, v := range record {
+					vals[j] = v
 				}
 			} else {
 				for j, v := range record {
@@ -276,10 +237,14 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, job
 			}
 		}
 		query := batchString(1000, tableName, lenRecord)
-		j := job{
-			query: query,
-			vals:  vals,
-		}
-		jobs <- j
+		wg.Add(1)
+		go func(db *sql.DB, query string, vals []interface{}) {
+			_, err = db.Exec(query, vals...)
+			if err != nil {
+				fmt.Println("error:", err)
+			}
+			wg.Done()
+		}(db, query, vals)
 	}
+	wg.Wait()
 }

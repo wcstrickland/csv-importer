@@ -8,9 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
 	_ "github.com/mattn/go-sqlite3"
-	"io"
 	"log"
-	//	_ "modernc.org/sqlite"
 	"os"
 	"strings"
 	"sync"
@@ -117,6 +115,7 @@ func main() {
 		db.SetConnMaxLifetime(time.Minute * 3)
 		db.SetMaxOpenConns(0)
 		db.SetMaxIdleConns(30)
+		defer db.Close()
 
 		// PING THE DB AND FATAL OUT IF THE CONNECTION IS NOT SUCCESSFUL
 		err = db.Ping()
@@ -136,13 +135,12 @@ func main() {
 
 		// READ FIRST LINE FOR HEADERS
 		firstLine, err := r.Read()
+		lenRecord := len(firstLine)
 		if err != nil {
-			fmt.Println("error:", err)
+			fmt.Println("error reading CSV:", err)
 		}
-
-		// SANITIZE FIELD NAMES
 		var newFirstLine []string
-		for _, fd := range firstLine {
+		for _, fd := range firstLine { // sanitize headers
 			newFirstLine = append(newFirstLine, sanitize(fd))
 		}
 
@@ -160,45 +158,10 @@ func main() {
 			fmt.Println("error", err)
 		}
 
-		query := qString(tableName, newFirstLine)
-		// chan and wg
-		jobs := make(chan []string)
-
-		for i := 0; i < 1; i++ {
-			wg.Add(1)
-			go insertWorker(i, db, query, jobs)
-		}
-
 		// READ THE LINES OF THE CSV
-
-		for {
-			record, err := r.Read()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				fmt.Println("error reading csv file:", err)
-			}
-			jobs <- record
-		}
-		close(jobs)
+		insertLines(db, tableName, lenRecord, r)
 		wg.Wait()
 		stop := time.Since(start)
-		fmt.Println(stop)
-		defer db.Close()
+		fmt.Println("time taken: ", stop)
 	}
-}
-
-func insertWorker(id int, db *sql.DB, query string, jobs <-chan []string) {
-	for job := range jobs {
-		start := time.Now()
-		err := insert(db, query, job)
-		stop := time.Since(start)
-		fmt.Printf("worker %d inserted a job in %v\n", id, stop)
-		if err != nil {
-			fmt.Println("error at worker level", err)
-			panic(err)
-		}
-	}
-	wg.Done()
 }
