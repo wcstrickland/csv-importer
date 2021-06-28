@@ -163,20 +163,20 @@ func main() {
 		start := time.Now()
 		for i, file := range sliceOfFiles {
 			// READ THE LINES OF THE CSV
+			f, err := os.Open(file)
+			r = csv.NewReader(f)
+			if err != nil {
+				fmt.Println("error processing a split file:", err)
+			}
+			if i == 0 {
+				_, err = r.Read()
+			}
+			wg.Add(1)
 			go func(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
-				f, err := os.Open(file)
-				if err != nil {
-					fmt.Println("error processing a split file:", err)
-				}
-				r = csv.NewReader(f)
-				if i == 0 {
-					_, err = r.Read()
-				}
 				insertLines(db, tableName, lenRecord, r)
-				defer f.Close()
+				wg.Done()
 			}(db, tableName, lenRecord, r)
 		}
-
 		wg.Wait()
 		stop := time.Since(start)
 		fmt.Println("time taken: ", stop)
