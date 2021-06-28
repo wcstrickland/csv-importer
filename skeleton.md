@@ -19,7 +19,7 @@
 ## ask what type of DB 
 - [x] make connection based on selected DB type
 - [x] change field type options available based on user selected DB Type
-- [ ] create a flag value that assigns maximum number of open connections to accomodate restricted dbs
+- [x] create a flag value that assigns maximum number of open connections to accomodate restricted dbs
 
 ## loop over first line(headers)
 - [x] sterilize fields  
@@ -52,7 +52,7 @@
 ## Problems
 
 ####
--[x] ~~all insertion methods in standard library take a []interfac{} as the parameters.~~  
+- [x] ~~all insertion methods in standard library take a []interfac{} as the parameters.~~  
 ~~there is no feasible way to convert a row([]string) to []interface{} without adding n=columns itteration to every row~~  
 ~~maybe 3rd party orm?~~
 
