@@ -79,7 +79,7 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 	return validChoice
 }
 
-// getSqlInfo takes no arguments and returns a set of strings and ints used to construct a db driver string
+// getSqlInfo takes no arguments and returns a set of strings and ints supplied by the user used to construct a db driver string
 func getSqlInfo() (string, string, string, string, string, string) {
 	fmt.Println("\nPlease enter host")
 	fmt.Scanln(&host)
@@ -113,6 +113,7 @@ func connectToDBtype(dbType string) (*sql.DB, error) {
 	return db, err
 }
 
+// connectSqlite attempts to make a connection to a database with user supplied information
 func connectSqlite() (*sql.DB, error) {
 	sqliteFileName := ""
 	fmt.Println("\nwhat SQLite file do you want to use?")
@@ -133,6 +134,7 @@ func connectSqlite() (*sql.DB, error) {
 	return db, err
 }
 
+// connectPostgres attempts to make a connection to a database with user supplied information
 func connectPostgres() (*sql.DB, error) {
 	host, user, password, dbname, port, sslMode := getSqlInfo()
 	psqlInfoMap := map[string]string{
@@ -154,6 +156,7 @@ func connectPostgres() (*sql.DB, error) {
 	return db, err
 }
 
+// connectMysql attempts to make a connection to a database with user supplied information
 func connectMysql() (*sql.DB, error) {
 	host, user, password, dbname, _, _ := getSqlInfo()
 	mysqlInfo := fmt.Sprintf("%s:%s@(%s)/%s", user, password, host, dbname)
@@ -161,6 +164,9 @@ func connectMysql() (*sql.DB, error) {
 	return db, err
 }
 
+// createQueryString(tableName string, fieldTypes, newFirstLine []string) string
+// given a table name, the types of each field, and the label for each field the function returns an SQL statemetnt
+// for creating a table in the form of a string
 func createQueryString(tableName string, fieldTypes, newFirstLine []string) string {
 	createQueryString := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", tableName)
 	for i := 0; i < len(fieldTypes); i++ {
@@ -171,6 +177,7 @@ func createQueryString(tableName string, fieldTypes, newFirstLine []string) stri
 	return createQueryString
 }
 
+//TODO this doesnt need to be its own function
 func createTable(db *sql.DB, query string) error {
 	// time out context
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
@@ -189,16 +196,8 @@ func createTable(db *sql.DB, query string) error {
 	return nil
 }
 
-func qString(tableName string, newFirstLine []string) string {
-	xs := make([]string, 4)
-	xs[0] = fmt.Sprintf("INSERT INTO %s", tableName)
-	xs[1] = "VALUES ("
-	ph := strings.Repeat("?, ", len(newFirstLine))
-	xs[2] = strings.TrimSuffix(ph, ", ")
-	xs[3] = ")"
-	return strings.Join(xs, " ")
-}
-
+// batchString(batchSize int, tableName string, lenRecord int) string
+// creates an SQL multiple insert statement with given number of fields(lenRecord) and desired number of insertions(batchSize)
 func batchString(batchSize int, tableName string, lenRecord int) string {
 	phSlice := make([]string, batchSize)
 	xs := make([]string, 3)
@@ -216,6 +215,8 @@ func batchString(batchSize int, tableName string, lenRecord int) string {
 	return strings.Join(xs, " ")
 }
 
+// line counter takes r io.Reader and returns (int,error)
+// efficient use of buffers and bytes.Count returns the number of lines with minimal resources
 func lineCounter(r io.Reader) (int, error) {
 	buf := make([]byte, 32*1024)
 	count := 0
@@ -235,6 +236,10 @@ func lineCounter(r io.Reader) (int, error) {
 	}
 }
 
+// insertLines takes db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job and has no return
+// a csv.Reader is looped over. Values are collected into batches of 1000 and an insert query is generated
+// the query and values comproise a job which is sent onto a channel to be consumed by workers
+// if EOF is reached a query of appropriate size is constructed with values and sent. the function then exits
 func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job) {
 	for {
 		vals := make([]interface{}, 1000*lenRecord)
@@ -272,6 +277,9 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, job
 	}
 }
 
+// insert worker takes an id(int), db, <-chan job, chan<- int
+// the worker pulls jobs from a channel and performs db insertions
+// then sends an integer result out. +1 indicates a sucessful job -1 indicates the worker is closing
 func insertWorker(id int, db *sql.DB, jobs <-chan job, results chan<- int) {
 	for job := range jobs {
 		_, err = db.Exec(job.query, job.vals...)
@@ -284,34 +292,36 @@ func insertWorker(id int, db *sql.DB, jobs <-chan job, results chan<- int) {
 	results <- -1
 }
 
+// loading bar takes the string components desired to represent the bar, the desired width of the bar,
+// the total work the bar is measuring progress of, a chanel to recieve instances of work completed, and total number of workers contributing to this work
+// it renders a visual representation of progress on a work load
 func loadingBar(bar, tip string, width int, totalWork int, workIn chan int, workers int) {
 	workDone := 1
-	doneSigs := workers
+	doneSigs := workers // num of workers on workload
 	var percentage float64
 	for {
 		if totalWork > 1000 {
 			percentage = (float64(workDone) / float64(totalWork)) * 1000
 		} else {
-			percentage = (float64(workDone) / float64(totalWork))
+			percentage = (float64(workDone) / float64(totalWork)) //work done is divided by total work to achieve a percentage.
 		}
-		progress := percentage * float64(width)
-		rounded := int(progress)
+		progress := percentage * float64(width) //this is multipled by the desired width
+		rounded := int(progress)                //and rounded to represent the number of progress bars to be printed
 		if rounded == 0 {
 			rounded = 1
 		}
 		select { // if a value is recieved it is checked
 		case v := <-workIn:
-			if v == 1 { // if work is done our counter (workDone) is incremented
+			if v == 1 { // 1 indicates a successful job thus incrementing work done
 				workDone += v
-			} else if v == -1 { // if work is finished the bar is cleared and the function exits
+			} else if v == -1 { // -1 is a signal from the worker that it has closed thus decrementing the number of outstanding workers
 				doneSigs--
 			}
-		default: // if no work is done/ nor yet finished the function does not block
-			// and instead displays a status bar
-			if doneSigs == 0 {
+		default: // if no signal is recieved a display bar is rendered (this allows the chanel not to block)
+			if doneSigs == 0 { // if work is finished (all workers have reported closing) the bar is completed and the function exits
 				fmt.Printf("\r[%s%s%s]%d%%", strings.Repeat(bar, width+1), tip, strings.Repeat(" ", 1), 100)
 				return
-			}
+			} // otherwise the bar represents the ratio of work done to total work
 			fmt.Printf("\r[%s%s%s]%2.f%%", strings.Repeat(bar, rounded), tip, strings.Repeat(" ", width-rounded), percentage*100)
 		}
 	}
