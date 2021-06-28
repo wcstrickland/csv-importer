@@ -52,7 +52,7 @@
 ## Problems
 
 ####
--[x] ~~all insertion methods in standard library take a []interfac{} as the parameters.~~  
+- [x] ~~all insertion methods in standard library take a []interfac{} as the parameters.~~  
 ~~there is no feasible way to convert a row([]string) to []interface{} without adding n=columns itteration to every row~~  
 ~~maybe 3rd party orm?~~
 
