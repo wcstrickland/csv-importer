@@ -3,10 +3,14 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -126,7 +130,7 @@ func connectSqlite() (*sql.DB, error) {
 		}
 	}
 	liteDsn := fmt.Sprintf("file:%s", sqliteFileName)
-	db, err = sql.Open("sqlite", liteDsn)
+	db, err = sql.Open("sqlite3", liteDsn)
 	return db, err
 }
 
@@ -186,40 +190,98 @@ func createTable(db *sql.DB, query string) error {
 	return nil
 }
 
-func qString(tableName string, newFirstLine []string) string {
-	xs := make([]string, 4)
+func batchString(batchSize int, tableName string, lenRecord int) string {
+	phSlice := make([]string, batchSize)
+	xs := make([]string, 3)
 	xs[0] = fmt.Sprintf("INSERT INTO %s ", tableName)
-	xs[1] = "VALUES ("
-	ph := strings.Repeat("?, ", len(newFirstLine))
-	xs[2] = strings.TrimSuffix(ph, ", ")
-	xs[3] = ")"
+	xs[1] = "VALUES "
+	for i := 0; i < batchSize; i++ {
+		ph := "("
+		ph += strings.Repeat("?, ", lenRecord)
+		ph = strings.TrimSuffix(ph, ", ")
+		ph += "),"
+		phSlice[i] = ph
+	}
+	phs := strings.Join(phSlice, " ")
+	xs[2] = strings.TrimSuffix(phs, ",")
 	return strings.Join(xs, " ")
 }
 
-func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
-	convertedRow := make([]interface{}, len(record))
-	for i, v := range record {
-		convertedRow[i] = v
-	}
-	result, err := db.Exec(query, convertedRow...)
+func splitFile(f string) []string {
+	// make a uuid
+	buuid, err := exec.Command("uuidgen").Output()
 	if err != nil {
 		fmt.Println("error:", err)
-		panic(err)
 	}
-	return result, err
+	// convert it to a string and remove the \n
+	uuid := string(buuid)
+	uuid = strings.TrimSuffix(uuid, "\n")
+	// get the number of cpu cores and assign to varaible formatted to use with split
+	cores := runtime.NumCPU()
+	chunks := fmt.Sprintf("l/%d", cores)
+	// find unix split progam and call it
+	split, _ := exec.LookPath("split")
+	splitCmd := &exec.Cmd{
+		Path: split,
+		// call [split], [-n number of lines] [chunks splits based on cores]
+		// [-d use a decimal suffix] [file to split] [uuid for prefix]
+		Args:   []string{"split", "-n", chunks, "-d", f, uuid},
+		Stdout: os.Stdout,
+		Stderr: os.Stdout,
+	}
+	err = splitCmd.Run()
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	files := make([]string, cores)
+	for i := 0; i < cores; i++ {
+		file := fmt.Sprintf("%s0%d", uuid, i)
+		files[i] = file
+	}
+	//	fmt.Println(files)
+	return files
 }
 
-// unsafe query subject to sql injection
-//func injectQueryString(queryPrefix string, curLine []string) string {
-//	xs := make([]string, 3)
-//	var vals strings.Builder
-//	for _, v := range curLine {
-//		fmt.Fprintf(&vals, "'%s', ", v)
-//	}
-//	str1 := vals.String()
-//	str1 = str1[:vals.Len()-2]
-//	xs[0] = queryPrefix
-//	xs[1] = str1
-//	xs[2] = ")"
-//	return strings.Join(xs, " ")
-//}
+func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
+	for {
+		vals := make([]interface{}, 1000*lenRecord)
+		for i := 0; i < 1000; i++ {
+			record, err := r.Read()
+			if err == io.EOF {
+				if i == 0 {
+					return
+				}
+				vals = vals[:i*lenRecord]
+				query := batchString(i, tableName, lenRecord)
+				wg.Add(1)
+				go func(db *sql.DB, query string, vals []interface{}) {
+					_, err = db.Exec(query, vals...)
+					if err != nil {
+						fmt.Println("error:", err)
+					}
+					wg.Done()
+				}(db, query, vals)
+				return
+			}
+			if i == 0 {
+				for j, v := range record {
+					vals[j] = v
+				}
+			} else {
+				for j, v := range record {
+					vals[(lenRecord*i)+j] = v
+				}
+			}
+		}
+		query := batchString(1000, tableName, lenRecord)
+		wg.Add(1)
+		go func(db *sql.DB, query string, vals []interface{}) {
+			_, err = db.Exec(query, vals...)
+			if err != nil {
+				fmt.Println("error:", err)
+			}
+			wg.Done()
+		}(db, query, vals)
+	}
+	wg.Wait()
+}

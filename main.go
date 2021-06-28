@@ -1,18 +1,18 @@
 package main
 
 import (
-	//"context"
 	"database/sql"
 	"encoding/csv"
 	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
-	"io"
+	_ "github.com/mattn/go-sqlite3"
 	"log"
-	_ "modernc.org/sqlite"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,6 +21,7 @@ var (
 	db                                                  *sql.DB
 	err                                                 error
 	csvLines                                            int
+	wg                                                  sync.WaitGroup
 )
 
 var validDBChoices = map[int]string{
@@ -47,7 +48,7 @@ var validPostgresChoices = map[int]string{
 var validSqliteChoices = map[int]string{
 	1: "TEXT",
 	2: "INTEGER",
-	3: "REAL",
+	3: "DECIMAL",
 }
 var dbTypeChoices = map[string]map[int]string{
 	"mysql":    validMysqlChoices,
@@ -56,6 +57,7 @@ var dbTypeChoices = map[string]map[int]string{
 }
 
 func main() {
+	// flag stuff
 	cmdLineDB := flag.String("t", "", "selected database type")
 	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
@@ -74,11 +76,11 @@ func main() {
 	}
 
 	// LOOP OVER ALL COMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
-	for _, v := range os.Args[1:] {
-		if strings.HasPrefix(v, "-") {
+	for _, filename := range os.Args[1:] {
+		if strings.HasPrefix(filename, "-") {
 			continue
 		}
-		f, err := os.Open(v)
+		f, err := os.Open(filename)
 		if err != nil {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
 			fmt.Println("\nerror:", err)
@@ -86,8 +88,7 @@ func main() {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
 			continue
 		}
-		defer f.Close()
-		fmt.Println("\nThe currently selected file is:", v)
+		fmt.Println("\nThe currently selected file is:", filename)
 		// make a csv Reader from the file
 		r := csv.NewReader(f)
 
@@ -112,8 +113,8 @@ func main() {
 			panic(err)
 		}
 		db.SetConnMaxLifetime(time.Minute * 3)
-		db.SetMaxOpenConns(10)
-		db.SetMaxIdleConns(10)
+		db.SetMaxOpenConns(runtime.NumCPU() * 10)
+		db.SetMaxIdleConns(30)
 		defer db.Close()
 
 		// PING THE DB AND FATAL OUT IF THE CONNECTION IS NOT SUCCESSFUL
@@ -134,13 +135,12 @@ func main() {
 
 		// READ FIRST LINE FOR HEADERS
 		firstLine, err := r.Read()
+		lenRecord := len(firstLine)
 		if err != nil {
-			fmt.Println("error:", err)
+			fmt.Println("error reading CSV:", err)
 		}
-
-		// SANITIZE FIELD NAMES
 		var newFirstLine []string
-		for _, fd := range firstLine {
+		for _, fd := range firstLine { // sanitize headers
 			newFirstLine = append(newFirstLine, sanitize(fd))
 		}
 
@@ -151,30 +151,40 @@ func main() {
 			fieldTypes = append(fieldTypes, userChoice)
 		}
 
-		start := time.Now()
-
 		// CREATE THE TABLE
 		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
 		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
 		}
 
-		query := qString(tableName, newFirstLine)
-		// READ THE LINES OF THE CSV
-		for {
-			record, err := r.Read()
-			if err == io.EOF {
-				break
-			}
+		f.Close()
+		// Split the file into multiples
+		sliceOfFiles := splitFile(filename)
+
+		start := time.Now()
+		for i, file := range sliceOfFiles {
+			// READ THE LINES OF THE CSV
+			f, err := os.Open(file)
+			r = csv.NewReader(f)
 			if err != nil {
-				fmt.Println("error reading csv file:", err)
+				fmt.Println("error processing a split file:", err)
 			}
-			_, err = insertRow(db, query, record)
-			if err != nil {
-				fmt.Println("error:", err)
+			if i == 0 {
+				_, err = r.Read()
+			}
+			wg.Add(1)
+			go func(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
+				insertLines(db, tableName, lenRecord, r)
+				wg.Done()
+			}(db, tableName, lenRecord, r)
+		}
+		wg.Wait()
+		for _, v := range sliceOfFiles {
+			if err = os.Remove(v); err != nil {
+				fmt.Println(err)
 			}
 		}
 		stop := time.Since(start)
-		fmt.Println(stop)
+		fmt.Println("time taken: ", stop)
 	}
 }
