@@ -10,7 +10,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -21,7 +20,8 @@ var (
 	db                                                  *sql.DB
 	err                                                 error
 	csvLines                                            int
-	wg                                                  sync.WaitGroup
+
+	wg sync.WaitGroup
 )
 
 var validDBChoices = map[int]string{
@@ -76,11 +76,11 @@ func main() {
 	}
 
 	// LOOP OVER ALL COMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
-	for _, filename := range os.Args[1:] {
-		if strings.HasPrefix(filename, "-") {
+	for _, v := range os.Args[1:] {
+		if strings.HasPrefix(v, "-") {
 			continue
 		}
-		f, err := os.Open(filename)
+		f, err := os.Open(v)
 		if err != nil {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
 			fmt.Println("\nerror:", err)
@@ -88,7 +88,8 @@ func main() {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
 			continue
 		}
-		fmt.Println("\nThe currently selected file is:", filename)
+		defer f.Close()
+		fmt.Println("\nThe currently selected file is:", v)
 		// make a csv Reader from the file
 		r := csv.NewReader(f)
 
@@ -113,7 +114,7 @@ func main() {
 			panic(err)
 		}
 		db.SetConnMaxLifetime(time.Minute * 3)
-		db.SetMaxOpenConns(runtime.NumCPU() * 10)
+		db.SetMaxOpenConns(0)
 		db.SetMaxIdleConns(30)
 		defer db.Close()
 
@@ -152,39 +153,39 @@ func main() {
 		}
 
 		// CREATE THE TABLE
+		start := time.Now()
 		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
 		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
 		}
 
-		f.Close()
-		// Split the file into multiples
-		sliceOfFiles := splitFile(filename)
-
-		start := time.Now()
-		for i, file := range sliceOfFiles {
-			// READ THE LINES OF THE CSV
-			f, err := os.Open(file)
-			r = csv.NewReader(f)
-			if err != nil {
-				fmt.Println("error processing a split file:", err)
-			}
-			if i == 0 {
-				_, err = r.Read()
-			}
+		jobs := make(chan job)
+		for i := 0; i < 100; i++ {
 			wg.Add(1)
-			go func(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
-				insertLines(db, tableName, lenRecord, r)
-				wg.Done()
-			}(db, tableName, lenRecord, r)
+			go insertWorker(i, db, jobs)
 		}
+
+		// READ THE LINES OF THE CSV
+		insertLines(db, tableName, lenRecord, r, jobs)
+		close(jobs)
 		wg.Wait()
-		for _, v := range sliceOfFiles {
-			if err = os.Remove(v); err != nil {
-				fmt.Println(err)
-			}
-		}
 		stop := time.Since(start)
 		fmt.Println("time taken: ", stop)
 	}
+}
+
+type job struct {
+	query string
+	vals  []interface{}
+}
+
+func insertWorker(id int, db *sql.DB, jobs <-chan job) {
+	for job := range jobs {
+		_, err = db.Exec(job.query, job.vals...)
+		if err != nil {
+			fmt.Println("error at worker level", err)
+			panic(err)
+		}
+	}
+	wg.Done()
 }

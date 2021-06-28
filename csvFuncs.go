@@ -9,8 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -190,6 +188,16 @@ func createTable(db *sql.DB, query string) error {
 	return nil
 }
 
+func qString(tableName string, newFirstLine []string) string {
+	xs := make([]string, 4)
+	xs[0] = fmt.Sprintf("INSERT INTO %s", tableName)
+	xs[1] = "VALUES ("
+	ph := strings.Repeat("?, ", len(newFirstLine))
+	xs[2] = strings.TrimSuffix(ph, ", ")
+	xs[3] = ")"
+	return strings.Join(xs, " ")
+}
+
 func batchString(batchSize int, tableName string, lenRecord int) string {
 	phSlice := make([]string, batchSize)
 	xs := make([]string, 3)
@@ -207,44 +215,41 @@ func batchString(batchSize int, tableName string, lenRecord int) string {
 	return strings.Join(xs, " ")
 }
 
-func splitFile(f string) []string {
-	// make a uuid
-	buuid, err := exec.Command("uuidgen").Output()
+func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancelfunc()
+	convertedRow := make([]interface{}, len(record))
+	for i, v := range record {
+		convertedRow[i] = v
+	}
+	result, err := db.ExecContext(ctx, query, convertedRow...)
 	if err != nil {
 		fmt.Println("error:", err)
+		panic(err)
 	}
-	// convert it to a string and remove the \n
-	uuid := string(buuid)
-	uuid = strings.TrimSuffix(uuid, "\n")
-	// get the number of cpu cores and assign to varaible formatted to use with split
-	cores := runtime.NumCPU()
-	chunks := fmt.Sprintf("l/%d", cores)
-	// find unix split progam and call it
-	split, _ := exec.LookPath("split")
-	splitCmd := &exec.Cmd{
-		Path: split,
-		// call [split], [-n number of lines] [chunks splits based on cores]
-		// [-d use a decimal suffix] [file to split] [uuid for prefix]
-		Args:   []string{"split", "-n", chunks, "-d", f, uuid},
-		Stdout: os.Stdout,
-		Stderr: os.Stdout,
-	}
-	err = splitCmd.Run()
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	files := make([]string, cores)
-	for i := 0; i < cores; i++ {
-		file := fmt.Sprintf("%s0%d", uuid, i)
-		files[i] = file
-	}
-	//	fmt.Println(files)
-	return files
+	return result, err
 }
 
-func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
+func insert(db *sql.DB, query string, record []string) error {
+	convertedRow := make([]interface{}, len(record))
+	for i, v := range record {
+		convertedRow[i] = v
+	}
+	_, err := db.Exec(query, convertedRow...)
+	if err != nil {
+		fmt.Println("error executing insert function:", err)
+		panic(err)
+	}
+	return err
+}
+
+func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job) {
 	for {
 		vals := make([]interface{}, 1000*lenRecord)
+		_, err := r.Read()
+		if err == io.EOF {
+			return
+		}
 		for i := 0; i < 1000; i++ {
 			record, err := r.Read()
 			if err == io.EOF {
@@ -253,14 +258,11 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
 				}
 				vals = vals[:i*lenRecord]
 				query := batchString(i, tableName, lenRecord)
-				wg.Add(1)
-				go func(db *sql.DB, query string, vals []interface{}) {
-					_, err = db.Exec(query, vals...)
-					if err != nil {
-						fmt.Println("error:", err)
-					}
-					wg.Done()
-				}(db, query, vals)
+				j := job{
+					query: query,
+					vals:  vals,
+				}
+				jobs <- j
 				return
 			}
 			if i == 0 {
@@ -274,14 +276,10 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
 			}
 		}
 		query := batchString(1000, tableName, lenRecord)
-		wg.Add(1)
-		go func(db *sql.DB, query string, vals []interface{}) {
-			_, err = db.Exec(query, vals...)
-			if err != nil {
-				fmt.Println("error:", err)
-			}
-			wg.Done()
-		}(db, query, vals)
+		j := job{
+			query: query,
+			vals:  vals,
+		}
+		jobs <- j
 	}
-	wg.Wait()
 }
