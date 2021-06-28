@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/csv"
@@ -215,6 +216,25 @@ func batchString(batchSize int, tableName string, lenRecord int) string {
 	return strings.Join(xs, " ")
 }
 
+func lineCounter(r io.Reader) (int, error) {
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := r.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		switch {
+		case err == io.EOF:
+			return count, nil
+
+		case err != nil:
+			return count, err
+		}
+	}
+}
+
 func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job) {
 	for {
 		vals := make([]interface{}, 1000*lenRecord)
@@ -252,13 +272,47 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, job
 	}
 }
 
-func insertWorker(id int, db *sql.DB, jobs <-chan job) {
+func insertWorker(id int, db *sql.DB, jobs <-chan job, results chan<- int) {
 	for job := range jobs {
 		_, err = db.Exec(job.query, job.vals...)
 		if err != nil {
 			fmt.Println("error at worker level", err)
 			panic(err)
 		}
+		results <- 1
 	}
-	wg.Done()
+	results <- -1
+}
+
+func loadingBar(bar, tip string, width int, totalWork int, workIn chan int, workers int) {
+	workDone := 1
+	doneSigs := workers
+	var percentage float64
+	for {
+		if totalWork > 1000 {
+			percentage = (float64(workDone) / float64(totalWork)) * 1000
+		} else {
+			percentage = (float64(workDone) / float64(totalWork))
+		}
+		progress := percentage * float64(width)
+		rounded := int(progress)
+		if rounded == 0 {
+			rounded = 1
+		}
+		select { // if a value is recieved it is checked
+		case v := <-workIn:
+			if v == 1 { // if work is done our counter (workDone) is incremented
+				workDone += v
+			} else if v == -1 { // if work is finished the bar is cleared and the function exits
+				doneSigs--
+			}
+		default: // if no work is done/ nor yet finished the function does not block
+			// and instead displays a status bar
+			if doneSigs == 0 {
+				fmt.Printf("\r[%s%s%s]%d%%", strings.Repeat(bar, width+1), tip, strings.Repeat(" ", 1), 100)
+				return
+			}
+			fmt.Printf("\r[%s%s%s]%2.f%%", strings.Repeat(bar, rounded), tip, strings.Repeat(" ", width-rounded), percentage*100)
+		}
+	}
 }

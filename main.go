@@ -47,9 +47,12 @@ func main() {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
 			continue
 		}
-		defer f.Close()
-		fmt.Println("\nThe currently selected file is:", v)
+		lines, _ := lineCounter(f)
+		f.Close()
+		fmt.Println("\nThe currently selected file is:", v, "\nIt is", lines, "lines long")
 		// make a csv Reader from the file
+		f, _ = os.Open(v)
+		defer f.Close()
 		r := csv.NewReader(f)
 
 		//GET DB TYPE
@@ -118,22 +121,25 @@ func main() {
 		if err != nil {
 			fmt.Println("error:", err)
 		}
-		fmt.Println("TABLE CREATED SUCCESSFULLY")
-		//		if err := createTable(db, createTableString); err != nil {
-		//			fmt.Println("error", err)
-		//		}
+		fmt.Println("\nTABLE CREATED SUCCESSFULLY")
+		fmt.Println("Please wait while your values are inserted: ")
 
+		results := make(chan int)
 		jobs := make(chan job)
 		for i := 0; i < 100; i++ {
-			wg.Add(1)
-			go insertWorker(i, db, jobs)
+			go insertWorker(i, db, jobs, results)
 		}
 
 		// READ THE LINES OF THE CSV
+		wg.Add(1)
+		go func() {
+			loadingBar("=", ">", 80, lines, results, 100)
+			wg.Done()
+		}()
 		insertLines(db, tableName, lenRecord, r, jobs)
 		close(jobs)
 		wg.Wait()
 		stop := time.Since(start)
-		fmt.Println("time taken: ", stop)
+		fmt.Println("\nTotal time taken: ", stop)
 	}
 }
