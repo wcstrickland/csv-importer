@@ -238,13 +238,8 @@ func splitFile(f string) []string {
 		file := fmt.Sprintf("%s0%d", uuid, i)
 		files[i] = file
 	}
-	fmt.Println(files)
+	//	fmt.Println(files)
 	return files
-	//	for _, v := range files {
-	//		if err = os.Remove(v); err != nil {
-	//			fmt.Println(err)
-	//		}
-	//	}
 }
 
 func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {

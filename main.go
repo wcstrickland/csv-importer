@@ -10,6 +10,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -112,7 +113,7 @@ func main() {
 			panic(err)
 		}
 		db.SetConnMaxLifetime(time.Minute * 3)
-		db.SetMaxOpenConns(0)
+		db.SetMaxOpenConns(runtime.NumCPU() * 10)
 		db.SetMaxIdleConns(30)
 		defer db.Close()
 
@@ -178,6 +179,11 @@ func main() {
 			}(db, tableName, lenRecord, r)
 		}
 		wg.Wait()
+		for _, v := range sliceOfFiles {
+			if err = os.Remove(v); err != nil {
+				fmt.Println(err)
+			}
+		}
 		stop := time.Since(start)
 		fmt.Println("time taken: ", stop)
 	}
