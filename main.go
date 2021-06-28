@@ -19,6 +19,7 @@ func main() {
 	cmdLineDB := flag.String("t", "", "selected database type")
 	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
+	maxConns := flag.Int("m", 0, "max number of connections: defaults to unlimited")
 	flag.Parse()
 	// validate that db type specified via command line is valid or blank
 	isValidDBType := false
@@ -72,7 +73,7 @@ func main() {
 			panic(err)
 		}
 		db.SetConnMaxLifetime(time.Minute * 3)
-		db.SetMaxOpenConns(0)
+		db.SetMaxOpenConns(*maxConns)
 		db.SetMaxIdleConns(30)
 		defer db.Close()
 
@@ -113,9 +114,14 @@ func main() {
 		// CREATE THE TABLE
 		start := time.Now()
 		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
-		if err := createTable(db, createTableString); err != nil {
-			fmt.Println("error", err)
+		_, err = db.Exec(createTableString)
+		if err != nil {
+			fmt.Println("error:", err)
 		}
+		fmt.Println("TABLE CREATED SUCCESSFULLY")
+		//		if err := createTable(db, createTableString); err != nil {
+		//			fmt.Println("error", err)
+		//		}
 
 		jobs := make(chan job)
 		for i := 0; i < 100; i++ {

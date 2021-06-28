@@ -215,41 +215,9 @@ func batchString(batchSize int, tableName string, lenRecord int) string {
 	return strings.Join(xs, " ")
 }
 
-func insertRow(db *sql.DB, query string, record []string) (sql.Result, error) {
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 7*time.Second)
-	defer cancelfunc()
-	convertedRow := make([]interface{}, len(record))
-	for i, v := range record {
-		convertedRow[i] = v
-	}
-	result, err := db.ExecContext(ctx, query, convertedRow...)
-	if err != nil {
-		fmt.Println("error:", err)
-		panic(err)
-	}
-	return result, err
-}
-
-func insert(db *sql.DB, query string, record []string) error {
-	convertedRow := make([]interface{}, len(record))
-	for i, v := range record {
-		convertedRow[i] = v
-	}
-	_, err := db.Exec(query, convertedRow...)
-	if err != nil {
-		fmt.Println("error executing insert function:", err)
-		panic(err)
-	}
-	return err
-}
-
 func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job) {
 	for {
 		vals := make([]interface{}, 1000*lenRecord)
-		_, err := r.Read()
-		if err == io.EOF {
-			return
-		}
 		for i := 0; i < 1000; i++ {
 			record, err := r.Read()
 			if err == io.EOF {

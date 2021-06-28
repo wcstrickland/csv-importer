@@ -49,3 +49,8 @@ var dbTypeChoices = map[string]map[int]string{
 	"postgres": validPostgresChoices,
 	"sqlite":   validSqliteChoices,
 }
+var phMap = map[string]string{
+	"mysql":    "?",
+	"sqlite":   "?",
+	"postgres": "$",
+}

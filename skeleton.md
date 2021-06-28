@@ -25,7 +25,7 @@
 - [x] sterilize fields  
 - [x] print field to stdout  
 - [x] depending on available datatypes create a map[int]string or map[int]int for letting the user "type" each field  
-- [ ] modify functiong that creates a statement to account for different placeholders in differing dbs. 
+- [x] ~~modify functiong that creates a statement to account for different placeholders in differing dbs~~ not required golang drivers use standard placeholder 
 - [x] store each response in a slice in the same order as the fields  
 - [x] create the table based on the headers and user input for table name  
 
