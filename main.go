@@ -75,11 +75,11 @@ func main() {
 	}
 
 	// LOOP OVER ALL COMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
-	for _, v := range os.Args[1:] {
-		if strings.HasPrefix(v, "-") {
+	for _, filename := range os.Args[1:] {
+		if strings.HasPrefix(filename, "-") {
 			continue
 		}
-		f, err := os.Open(v)
+		f, err := os.Open(filename)
 		if err != nil {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
 			fmt.Println("\nerror:", err)
@@ -87,8 +87,7 @@ func main() {
 			fmt.Println("!!!!!!!!!!!!!!!!!")
 			continue
 		}
-		defer f.Close()
-		fmt.Println("\nThe currently selected file is:", v)
+		fmt.Println("\nThe currently selected file is:", filename)
 		// make a csv Reader from the file
 		r := csv.NewReader(f)
 
@@ -152,14 +151,32 @@ func main() {
 		}
 
 		// CREATE THE TABLE
-		start := time.Now()
 		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
 		if err := createTable(db, createTableString); err != nil {
 			fmt.Println("error", err)
 		}
 
-		// READ THE LINES OF THE CSV
-		insertLines(db, tableName, lenRecord, r)
+		f.Close()
+		// Split the file into multiples
+		sliceOfFiles := splitFile(filename)
+
+		start := time.Now()
+		for i, file := range sliceOfFiles {
+			// READ THE LINES OF THE CSV
+			go func(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
+				f, err := os.Open(file)
+				if err != nil {
+					fmt.Println("error processing a split file:", err)
+				}
+				r = csv.NewReader(f)
+				if i == 0 {
+					_, err = r.Read()
+				}
+				insertLines(db, tableName, lenRecord, r)
+				defer f.Close()
+			}(db, tableName, lenRecord, r)
+		}
+
 		wg.Wait()
 		stop := time.Since(start)
 		fmt.Println("time taken: ", stop)

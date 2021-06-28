@@ -9,6 +9,8 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -203,6 +205,46 @@ func batchString(batchSize int, tableName string, lenRecord int) string {
 	phs := strings.Join(phSlice, " ")
 	xs[2] = strings.TrimSuffix(phs, ",")
 	return strings.Join(xs, " ")
+}
+
+func splitFile(f string) []string {
+	// make a uuid
+	buuid, err := exec.Command("uuidgen").Output()
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	// convert it to a string and remove the \n
+	uuid := string(buuid)
+	uuid = strings.TrimSuffix(uuid, "\n")
+	// get the number of cpu cores and assign to varaible formatted to use with split
+	cores := runtime.NumCPU()
+	chunks := fmt.Sprintf("l/%d", cores)
+	// find unix split progam and call it
+	split, _ := exec.LookPath("split")
+	splitCmd := &exec.Cmd{
+		Path: split,
+		// call [split], [-n number of lines] [chunks splits based on cores]
+		// [-d use a decimal suffix] [file to split] [uuid for prefix]
+		Args:   []string{"split", "-n", chunks, "-d", f, uuid},
+		Stdout: os.Stdout,
+		Stderr: os.Stdout,
+	}
+	err = splitCmd.Run()
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	files := make([]string, cores)
+	for i := 0; i < cores; i++ {
+		file := fmt.Sprintf("%s0%d", uuid, i)
+		files[i] = file
+	}
+	fmt.Println(files)
+	return files
+	//	for _, v := range files {
+	//		if err = os.Remove(v); err != nil {
+	//			fmt.Println(err)
+	//		}
+	//	}
 }
 
 func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader) {
