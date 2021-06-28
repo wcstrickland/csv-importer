@@ -31,11 +31,11 @@
 
 ## loop over remaining lines
 - [x] range over each record  
-- [x] ~~create prepared statement for insertion~~
+- [x] ~~create prepared statement for insertion~~ prepared statements hog connections
 
 ## concurrency
-- [ ] use UNIX split with os.Command to break the file into chunks that can be concurrently read 
-- [ ] bundle/embed the 'split' binary into the module to make final binary nonreliant on system level dependencies and cross platform compatible(split works on windows git bash)
+- [x] ~~use UNIX split with os.Command to break the file into chunks that can be concurrently read~~its implemented worker pool is just faster
+- [x] ~~bundle/embed the 'split' binary into the module to make final binary nonreliant on system level dependencies and cross platform compatible(split works on windows git bash)~~ not going to happen
 - [x] send each row onto a job channel  
 - [x] have workers pull jobs
 - [ ] have workers send a result onto a results channel
