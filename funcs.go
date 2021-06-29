@@ -259,22 +259,31 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, job
 // insert worker takes an id(int), db, <-chan job, chan<- int
 // the worker pulls jobs from a channel and performs db insertions
 // then sends an integer result out. +1 indicates a sucessful job -1 indicates the worker is closing
-func insertWorker(id int, db *sql.DB, jobs <-chan job, results chan<- int) {
+func insertWorker(lenRecord int, db *sql.DB, jobs <-chan job, results chan<- resultSignal) {
 	for job := range jobs {
 		_, err = db.Exec(job.query, job.vals...)
 		if err != nil {
 			fmt.Println("error at worker level", err)
 			panic(err)
 		}
-		results <- 1
+		r := resultSignal{
+			lines:  (len(job.vals) / lenRecord),
+			signal: 1,
+		}
+		results <- r
 	}
-	results <- -1
+	r := resultSignal{
+		lines:  0,
+		signal: -1,
+	}
+	results <- r
 }
 
 // loading bar takes the string components desired to represent the bar, the desired width of the bar,
 // the total work the bar is measuring progress of, a chanel to recieve instances of work completed, and total number of workers contributing to this work
 // it renders a visual representation of progress on a work load
-func loadingBar(bar, tip string, width int, totalWork int, workIn chan int, workers int) {
+func loadingBar(bar, tip string, width int, totalWork int, workIn chan resultSignal, workers int) int {
+	linesDone := 0
 	workDone := 1
 	doneSigs := workers // num of workers on workload
 	var percentage float64
@@ -291,15 +300,16 @@ func loadingBar(bar, tip string, width int, totalWork int, workIn chan int, work
 		}
 		select { // if a value is recieved it is checked
 		case v := <-workIn:
-			if v == 1 { // 1 indicates a successful job thus incrementing work done
-				workDone += v
-			} else if v == -1 { // -1 is a signal from the worker that it has closed thus decrementing the number of outstanding workers
+			if v.signal == 1 { // 1 indicates a successful job thus incrementing work done,
+				workDone += v.signal
+				linesDone += v.lines
+			} else if v.signal == -1 { // -1 is a signal from the worker that it has closed thus decrementing the number of outstanding workers
 				doneSigs--
 			}
 		default: // if no signal is recieved a display bar is rendered (this allows the chanel not to block)
 			if doneSigs == 0 { // if work is finished (all workers have reported closing) the bar is completed and the function exits
 				fmt.Printf("\r[%s%s%s]%d%%", strings.Repeat(bar, width+1), tip, strings.Repeat(" ", 1), 100)
-				return
+				return linesDone
 			} // otherwise the bar represents the ratio of work done to total work
 			fmt.Printf("\r[%s%s%s]%2.f%%", strings.Repeat(bar, rounded), tip, strings.Repeat(" ", width-rounded), percentage*100)
 		}

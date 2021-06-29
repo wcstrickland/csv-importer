@@ -19,7 +19,7 @@ func main() {
 	cmdLineDB := flag.String("t", "", "selected database type")
 	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
-	maxConns := flag.Int("m", 0, "max number of connections: defaults to unlimited\nIf you recieve errors stating that the database is locked set this to a number between 1 and 10")
+	maxConns := flag.Int("m", 10, "max number of connections: defaults to 10\nIf you recieve errors stating that the database is locked set this to a lower number but greater than 0(unlimited)")
 	flag.Parse()
 	// validate that db type specified via command line is valid or blank
 	isValidDBType := false
@@ -124,22 +124,28 @@ func main() {
 		fmt.Println("\nTABLE CREATED SUCCESSFULLY")
 		fmt.Println("Please wait while your values are inserted: ")
 
-		results := make(chan int)
+		results := make(chan resultSignal)
 		jobs := make(chan job)
 		for i := 0; i < 100; i++ {
-			go insertWorker(i, db, jobs, results)
+			go insertWorker(lenRecord, db, jobs, results)
 		}
 
 		// READ THE LINES OF THE CSV
 		wg.Add(1)
+		var linesDone int
 		go func() {
-			loadingBar("=", ">", 80, lines, results, 100)
+			linesDone = loadingBar("=", ">", 80, lines, results, 100)
 			wg.Done()
 		}()
 		insertLines(db, tableName, lenRecord, r, jobs)
 		close(jobs)
 		wg.Wait()
 		stop := time.Since(start)
-		fmt.Println("\nTotal time taken: ", stop)
+		fmt.Printf("\n%d rows inserted in %v\n", linesDone, stop)
 	}
+}
+
+type resultSignal struct {
+	lines  int
+	signal int
 }

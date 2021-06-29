@@ -28,6 +28,8 @@
 - [x] ~~modify functiong that creates a statement to account for different placeholders in differing dbs~~ not required golang drivers use standard placeholder 
 - [x] store each response in a slice in the same order as the fields  
 - [x] create the table based on the headers and user input for table name  
+- [ ] postgress supports bulk insert but not multi line insert. create a function to handle
+- [ ] test mysql multi line insert compatability
 
 ## loop over remaining lines
 - [x] range over each record  
@@ -38,15 +40,15 @@
 - [x] ~~bundle/embed the 'split' binary into the module to make final binary nonreliant on system level dependencies and cross platform compatible(split works on windows git bash)~~ not going to happen
 - [x] send each row onto a job channel  
 - [x] have workers pull jobs
-- [ ] have workers send a result onto a results channel
-- [ ] this reslut could be to increment a counter
-- [ ] or an empty result where the channel counts the number of results it recieved
-- [ ] return number of rows affected
+- [x] have workers send a result onto a results channel
+- [x] this reslut could be to increment a counter
+- [x] or an empty result where the channel counts the number of results it recieved
+- [x] return number of rows affected
 
 
 ## end
 - [x] time the process  
-- [ ] give success/ failure message  
+- [x] give success/ failure message  
 - [ ] provide link to db table  
 
 ## Problems
