@@ -137,7 +137,7 @@ func main() {
 			linesDone = loadingBar("=", ">", 80, lines, results, 100)
 			wg.Done()
 		}()
-		insertLines(db, tableName, lenRecord, r, jobs)
+		insertLines(db, tableName, newFirstLine, lenRecord, r, jobs)
 		close(jobs)
 		wg.Wait()
 		stop := time.Since(start)

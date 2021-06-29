@@ -177,11 +177,13 @@ func tableString(tableName string, fieldTypes, newFirstLine []string) string {
 
 // batchString(batchSize int, tableName string, lenRecord int) string
 // creates an SQL multiple insert statement with given number of fields(lenRecord) and desired number of insertions(batchSize)
-func batchString(batchSize int, tableName string, lenRecord int) string {
+func batchString(batchSize int, tableName string, newFirstLine []string, lenRecord int) string {
 	phSlice := make([]string, batchSize)
-	xs := make([]string, 3)
-	xs[0] = fmt.Sprintf("INSERT INTO %s ", tableName)
-	xs[1] = "VALUES "
+	xs := make([]string, 4)
+	xs[0] = fmt.Sprintf("INSERT INTO %s (", tableName)
+	fields := strings.Join(newFirstLine, ",")
+	xs[1] = strings.TrimSuffix(fields, ",")
+	xs[2] = ")VALUES "
 	for i := 0; i < batchSize; i++ {
 		ph := "("
 		ph += strings.Repeat("?, ", lenRecord)
@@ -190,8 +192,9 @@ func batchString(batchSize int, tableName string, lenRecord int) string {
 		phSlice[i] = ph
 	}
 	phs := strings.Join(phSlice, " ")
-	xs[2] = strings.TrimSuffix(phs, ",")
-	return strings.Join(xs, " ")
+	xs[3] = strings.TrimSuffix(phs, ",")
+	qstring := strings.Join(xs, " ")
+	return qstring
 }
 
 // line counter takes r io.Reader and returns (int,error)
@@ -219,7 +222,7 @@ func lineCounter(r io.Reader) (int, error) {
 // a csv.Reader is looped over. Values are collected into batches of 1000 and an insert query is generated
 // the query and values comproise a job which is sent onto a channel to be consumed by workers
 // if EOF is reached a query of appropriate size is constructed with values and sent. the function then exits
-func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, jobs chan<- job) {
+func insertLines(db *sql.DB, tableName string, newFirstLine []string, lenRecord int, r *csv.Reader, jobs chan<- job) {
 	for {
 		vals := make([]interface{}, 1000*lenRecord)
 		for i := 0; i < 1000; i++ {
@@ -229,7 +232,7 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, job
 					return
 				}
 				vals = vals[:i*lenRecord]
-				query := batchString(i, tableName, lenRecord)
+				query := batchString(i, tableName, newFirstLine, lenRecord)
 				j := job{
 					query: query,
 					vals:  vals,
@@ -247,7 +250,7 @@ func insertLines(db *sql.DB, tableName string, lenRecord int, r *csv.Reader, job
 				}
 			}
 		}
-		query := batchString(1000, tableName, lenRecord)
+		query := batchString(1000, tableName, newFirstLine, lenRecord)
 		j := job{
 			query: query,
 			vals:  vals,
