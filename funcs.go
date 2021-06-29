@@ -182,7 +182,7 @@ func batchString(batchSize int, tableName string, newFirstLine []string, lenReco
 	xs := make([]string, 4)
 	xs[0] = fmt.Sprintf("INSERT INTO %s (", tableName)
 	fields := strings.Join(newFirstLine, ",")
-	xs[1] = strings.TrimSuffix(fields, ",")
+	xs[1] = strings.TrimSuffix(fields, " ,")
 	xs[2] = ")VALUES "
 	for i := 0; i < batchSize; i++ {
 		ph := "("
