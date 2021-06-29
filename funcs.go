@@ -15,7 +15,7 @@ import (
 )
 
 // printSortedMap takes a map[int]string and has no return value
-// the func allows a map whose keys are ints to be printed in order by those ints
+// the function allows a map whose keys are integers to be printed in order by those integers
 func printSortedMap(m map[int]string) {
 	var si []int
 	for i := range m {
@@ -28,7 +28,7 @@ func printSortedMap(m map[int]string) {
 }
 
 // sanitize takes a string and returns a string
-// for each prohbited char the string replaces all instances of said char
+// for each prohibited char the string replaces all instances of said char
 func sanitize(s string) string {
 	prohibited := []string{";", ":", " ", "|", "-", "*", "/", "<", ">", ",", "=", "`", "~", "!", "?", "^", "(", ")"}
 	for _, v := range prohibited {
@@ -48,7 +48,7 @@ func getTableName() string {
 
 // getUserChoice takes a string and a map[int]string and returns string
 // getUserChoice takes user input and parses the string to int
-// to use in the map to return the valid choice or reprompt the user if the
+// to use in the map to return the valid choice or re prompt the user if the
 // choice is invalid
 func getUserChoice(choice string, validChoices map[int]string) string {
 	var userChoice string
@@ -62,7 +62,7 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 	validChoice, ok := validChoices[parsedChoice] // stores choice
 	// loop based on validity of input
 	for {
-		if ok == false {
+		if !ok {
 			fmt.Printf("\nWhat is the type of %s\n", choice)
 			fmt.Println("Invalid choice:")
 			printSortedMap(validChoices)
@@ -77,8 +77,8 @@ func getUserChoice(choice string, validChoices map[int]string) string {
 	return validChoice
 }
 
-// getSqlInfo takes no arguments and returns a set of strings and ints supplied by the user used to construct a db driver string
-func getSqlInfo() (string, string, string, string, string, string) {
+// getSqlInfo takes no arguments and returns a set of strings and integers  supplied by the user used to construct a db driver string
+func getSQLInfo() (string, string, string, string, string, string) {
 	fmt.Println("\nPlease enter host")
 	fmt.Scanln(&host)
 	fmt.Println("\nPlease enter port")
@@ -134,7 +134,7 @@ func connectSqlite() (*sql.DB, error) {
 
 // connectPostgres attempts to make a connection to a database with user supplied information
 func connectPostgres() (*sql.DB, error) {
-	host, user, password, dbname, port, sslMode := getSqlInfo()
+	host, user, password, dbname, port, sslMode := getSQLInfo()
 	psqlInfoMap := map[string]string{
 		"host":     fmt.Sprintf("host=%s", host),
 		"user":     fmt.Sprintf("user=%s", user),
@@ -156,7 +156,7 @@ func connectPostgres() (*sql.DB, error) {
 
 // connectMysql attempts to make a connection to a database with user supplied information
 func connectMysql() (*sql.DB, error) {
-	host, user, password, dbname, _, _ := getSqlInfo()
+	host, user, password, dbname, _, _ := getSQLInfo()
 	mysqlInfo := fmt.Sprintf("%s:%s@(%s)/%s", user, password, host, dbname)
 	db, err = sql.Open("mysql", mysqlInfo)
 	return db, err

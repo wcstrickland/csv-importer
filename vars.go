@@ -14,7 +14,6 @@ var (
 	sslMode, dbType, host, port, user, password, dbname string
 	db                                                  *sql.DB
 	err                                                 error
-	csvLines                                            int
 	wg                                                  sync.WaitGroup
 )
 
@@ -48,9 +47,4 @@ var dbTypeChoices = map[string]map[int]string{
 	"mysql":    validMysqlChoices,
 	"postgres": validPostgresChoices,
 	"sqlite":   validSqliteChoices,
-}
-var phMap = map[string]string{
-	"mysql":    "?",
-	"sqlite":   "?",
-	"postgres": "$",
 }

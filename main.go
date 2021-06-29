@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
-	_ "github.com/lib/pq"              // the underscore allows for import without explicit refrence
+	_ "github.com/lib/pq"              // the underscore allows for import without explicit reference
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
@@ -34,7 +34,7 @@ func main() {
 		log.Fatalln()
 	}
 
-	// LOOP OVER ALL COMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
+	// LOOP OVER ALL COMMAND LINE ARGUMENTS AND PERFORM THE PROGRAM ON EACH CSV FILE
 	for _, v := range os.Args[1:] {
 		if strings.HasPrefix(v, "-") {
 			continue
@@ -50,7 +50,7 @@ func main() {
 		lines, _ := lineCounter(f)
 		f.Close()
 		fmt.Println("\nThe currently selected file is:", v, "\nIt is", lines, "lines long")
-		// make a csv Reader from the file
+		// make a CSV Reader from the file
 		f, _ = os.Open(v)
 		defer f.Close()
 		r := csv.NewReader(f)
@@ -65,7 +65,7 @@ func main() {
 			dbType = fmt.Sprint(*cmdLineDB)
 		}
 
-		// CONNECTTODBTYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
+		// CONNECT TO DB TYPE HANDLES THE CONNECTION VIA SWITCH CASES FOR DIFFERENT DB TYPES
 		if *dbConnString == "" {
 			db, err = connectToDBtype(dbType)
 		} else {
