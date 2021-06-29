@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"encoding/csv"
 	"errors"
@@ -13,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // printSortedMap takes a map[int]string and has no return value
@@ -164,36 +162,17 @@ func connectMysql() (*sql.DB, error) {
 	return db, err
 }
 
-// createQueryString(tableName string, fieldTypes, newFirstLine []string) string
+// tableString(tableName string, fieldTypes, newFirstLine []string) string
 // given a table name, the types of each field, and the label for each field the function returns an SQL statemetnt
 // for creating a table in the form of a string
-func createQueryString(tableName string, fieldTypes, newFirstLine []string) string {
-	createQueryString := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", tableName)
+func tableString(tableName string, fieldTypes, newFirstLine []string) string {
+	tableString := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", tableName)
 	for i := 0; i < len(fieldTypes); i++ {
-		createQueryString += fmt.Sprintf("%s %s, ", newFirstLine[i], fieldTypes[i])
+		tableString += fmt.Sprintf("%s %s, ", newFirstLine[i], fieldTypes[i])
 	}
-	createQueryString = strings.TrimSuffix(createQueryString, ", ")
-	createQueryString += ")"
-	return createQueryString
-}
-
-//TODO this doesnt need to be its own function
-func createTable(db *sql.DB, query string) error {
-	// time out context
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
-	if err != nil {
-		fmt.Println("error:", err)
-		return err
-	}
-	_, err = res.RowsAffected()
-	if err != nil {
-		fmt.Println("error:", err)
-		return err
-	}
-	fmt.Println("TABLE CREATED SUCCESSFULLY")
-	return nil
+	tableString = strings.TrimSuffix(tableString, ", ")
+	tableString += ")"
+	return tableString
 }
 
 // batchString(batchSize int, tableName string, lenRecord int) string

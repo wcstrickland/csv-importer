@@ -19,7 +19,7 @@ func main() {
 	cmdLineDB := flag.String("t", "", "selected database type")
 	dbConnString := flag.String("c", "", "URI/DSN")
 	quietFlag := flag.Bool("quiet", false, "suppress confirmation messages")
-	maxConns := flag.Int("m", 0, "max number of connections: defaults to unlimited")
+	maxConns := flag.Int("m", 0, "max number of connections: defaults to unlimited\nIf you recieve errors stating that the database is locked set this to a number between 1 and 10")
 	flag.Parse()
 	// validate that db type specified via command line is valid or blank
 	isValidDBType := false
@@ -116,8 +116,8 @@ func main() {
 
 		// CREATE THE TABLE
 		start := time.Now()
-		createTableString := createQueryString(tableName, fieldTypes, newFirstLine)
-		_, err = db.Exec(createTableString)
+		tableString := tableString(tableName, fieldTypes, newFirstLine)
+		_, err = db.Exec(tableString)
 		if err != nil {
 			fmt.Println("error:", err)
 		}
