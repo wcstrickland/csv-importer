@@ -28,8 +28,7 @@
 - [x] ~~modify functiong that creates a statement to account for different placeholders in differing dbs~~ not required golang drivers use standard placeholder 
 - [x] store each response in a slice in the same order as the fields  
 - [x] create the table based on the headers and user input for table name  
-- [ ] postgress supports bulk insert but not multi line insert. create a function to handle
-- [ ] test mysql multi line insert compatability
+- [x] ~~test mysql multi line insert compatability~~ Done! 
 
 ## loop over remaining lines
 - [x] range over each record  
@@ -72,5 +71,14 @@ operations as usual(iterate over every row to make new []interface{}) and only o
 ####
 - [x] attempt to make fewer larger insert statements.
 - [x] ~~does go support prepared statements with multiple insert values?~~ NO it does not :(
-- [x] Ill have to hand roll one with string manipulation
-- It works and is way faster. Just need to adop concurrency from other branches in this model.
+- [x] ~~Ill have to hand roll one with string manipulation~~
+- ~~It works and is way faster. Just need to adop concurrency from other branches in this model.~~
+
+
+###
+- [x] test postgress multi line insert compatability 
+- [ ] postgress supports bulk insert but not multi line insert. create a function to handle
+- [ ] mysql allows for `COPY FROM FILE` on client side make implementation and compare
+- [ ] all databases: have each worker put all jobs in a single transaction to see if it lowers overhead
+- [ ] make readme
+- [ ] make blog
