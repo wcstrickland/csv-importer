@@ -8,6 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" // this is done to make use of the drivers only
 	_ "github.com/lib/pq"              // the underscore allows for import without explicit reference
 	_ "github.com/mattn/go-sqlite3"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -124,28 +125,73 @@ func main() {
 		fmt.Println("\nTABLE CREATED SUCCESSFULLY")
 		fmt.Println("Please wait while your values are inserted: ")
 
-		results := make(chan resultSignal)
-		jobs := make(chan job)
-		for i := 0; i < 100; i++ {
-			go insertWorker(lenRecord, db, jobs, results)
-		}
+		//		results := make(chan resultSignal)
+		//		jobs := make(chan job)
+		//		for i := 0; i < 100; i++ {
+		//			go insertWorker(lenRecord, db, jobs, results)
+		//		}
 
 		// READ THE LINES OF THE CSV
-		wg.Add(1)
-		var linesDone int
-		go func() {
-			linesDone = loadingBar("=", ">", 80, lines, results, 100)
-			wg.Done()
-		}()
-		insertLines(db, tableName, newFirstLine, lenRecord, r, jobs)
-		close(jobs)
-		wg.Wait()
+		//		wg.Add(1)
+		//		var linesDone int
+		//		go func() {
+		//			linesDone = loadingBar("=", ">", 80, lines, results, 100)
+		//			wg.Done()
+		//		}()
+		txInsertLines(db, tableName, newFirstLine, lenRecord, r)
+		//		close(jobs)
+		//		wg.Wait()
 		stop := time.Since(start)
-		fmt.Printf("\n%d rows inserted in %v\n", linesDone, stop)
+		fmt.Println("time taken: ", stop)
+		//		fmt.Printf("\n%d rows inserted in %v\n", linesDone, stop)
 	}
 }
 
-type resultSignal struct {
-	lines  int
-	signal int
+//type resultSignal struct {
+//	lines  int
+//	signal int
+//}
+
+func txInsertLines(db *sql.DB, tableName string, newFirstLine []string, lenRecord int, r *csv.Reader) {
+	tx, err := db.Begin()
+	for {
+		if err != nil {
+			fmt.Println("error:", err)
+		}
+		vals := make([]interface{}, 1000*lenRecord)
+		for i := 0; i < 1000; i++ {
+			record, err := r.Read()
+			if err == io.EOF {
+				if i == 0 {
+					return
+				} else {
+					vals = vals[:i*lenRecord]
+					query := batchString(i, tableName, newFirstLine, lenRecord)
+					_, err := tx.Exec(query, vals...)
+					if err != nil {
+						fmt.Println("error:", err)
+					}
+					err = tx.Commit()
+					if err != nil {
+						fmt.Println("error:", err)
+					}
+					return
+				}
+			}
+			if i == 0 {
+				for j, v := range record {
+					vals[j] = v
+				}
+			} else {
+				for j, v := range record {
+					vals[(lenRecord*i)+j] = v
+				}
+			}
+		}
+		query := batchString(1000, tableName, newFirstLine, lenRecord)
+		_, err = tx.Exec(query, vals...)
+		if err != nil {
+			fmt.Println("error:", err)
+		}
+	}
 }
