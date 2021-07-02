@@ -1,4 +1,5 @@
-<img src="images/gopher.png" width="200" height="300" />
+<div style="text-align: center;"> <img src="images/gopher.png" width="200" height="300" /> </div>
+
 # General concept
 - The user indicates the type of database to be used. (Postgres, Mysql(Maria), Sqlite3)
 - The program reads one or multiple csv files
