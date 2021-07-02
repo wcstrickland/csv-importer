@@ -1,4 +1,4 @@
-![goph](images/gopher.png)
+![goph](images/gopher.png =300x100)
 # General concept
 - The user indicates the type of database to be used. (Postgres, Mysql(Maria), Sqlite3)
 - The program reads one or multiple csv files
